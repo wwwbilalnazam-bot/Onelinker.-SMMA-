@@ -1,0 +1,364 @@
+// ════════════════════════════════════════════════════════════
+// YOUTUBE DIRECT PROVIDER
+//
+// Implements SocialProvider using the YouTube Data API v3 directly.
+// Uses your own Google Cloud OAuth credentials.
+//
+// Requires: YOUTUBE_CLIENT_ID + YOUTUBE_CLIENT_SECRET in env vars.
+// ════════════════════════════════════════════════════════════
+
+import type {
+  SocialProvider,
+  OAuthStartResult,
+  OAuthCallbackResult,
+  ProviderAccount,
+  CreatePostPayload,
+  CreatePostResult,
+  PostStatusResult,
+  PostAnalytics,
+  WebhookEvent,
+} from "./types";
+import {
+  buildYouTubeOAuthUrl,
+  handleYouTubeOAuthCode,
+  syncYouTubeChannelToSupabase,
+  getYouTubeAccessToken,
+  disconnectYouTubeAccount,
+} from "@/lib/youtube/accounts";
+import {
+  uploadYouTubeVideo,
+  deleteYouTubeVideo,
+  getYouTubeVideoStatus,
+} from "@/lib/youtube/posts";
+import { createServiceClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
+
+export class YouTubeDirectProvider implements SocialProvider {
+  readonly name = "youtube-direct";
+  readonly supportedPlatforms = ["youtube"];
+
+  // ── OAuth ──────────────────────────────────────────────
+
+  async startOAuth(params: {
+    platform: string;
+    redirectUri: string;
+    workspaceId: string;
+    apiKey?: string | null;
+  }): Promise<OAuthStartResult> {
+    const oauthUrl = buildYouTubeOAuthUrl({
+      redirectUri: params.redirectUri,
+      workspaceId: params.workspaceId,
+    });
+
+    return { oauthUrl };
+  }
+
+  async handleCallback(params: {
+    queryParams: Record<string, string>;
+    workspaceId: string;
+    redirectUri?: string;
+    apiKey?: string | null;
+  }): Promise<OAuthCallbackResult> {
+    const { queryParams, workspaceId, redirectUri: passedRedirectUri } = params;
+
+    const code = queryParams.code;
+    if (!code) {
+      throw new Error("Missing authorization code from Google OAuth");
+    }
+
+    // Use the redirect URI passed from the callback route
+    let redirectUri = passedRedirectUri;
+    if (!redirectUri) {
+      // Fallback for backwards compatibility
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+      redirectUri = `${appUrl}/auth/youtube/callback`;
+    }
+
+    const oauthResult = await handleYouTubeOAuthCode(code, redirectUri);
+
+    console.log("[youtube-direct] OAuth success, channel:", oauthResult.channel.title, oauthResult.channel.id);
+
+    const syncResult = await syncYouTubeChannelToSupabase(workspaceId, oauthResult);
+
+    console.log("[youtube-direct] Sync result:", JSON.stringify(syncResult));
+
+    if (syncResult.errors > 0 && syncResult.synced === 0) {
+      throw new Error("Failed to save YouTube channel to database. Check server logs.");
+    }
+
+    return {
+      accountsConnected: 1,
+      syncedCount: syncResult.synced,
+    };
+  }
+
+  // ── Accounts ───────────────────────────────────────────
+
+  async listAccounts(params: {
+    workspaceId: string;
+    apiKey?: string | null;
+  }): Promise<ProviderAccount[]> {
+    const serviceClient = createServiceClient();
+
+    const { data: accounts } = await serviceClient
+      .from("social_accounts")
+      .select("outstand_account_id, platform, username, display_name, profile_picture, is_active")
+      .eq("workspace_id", params.workspaceId)
+      .eq("platform", "youtube")
+      .like("outstand_account_id", "yt_%");
+
+    return (accounts ?? []).map((a) => ({
+      providerAccountId: a.outstand_account_id,
+      platform: a.platform,
+      username: a.username,
+      displayName: a.display_name,
+      profilePictureUrl: a.profile_picture,
+      isActive: a.is_active,
+    }));
+  }
+
+  async syncAccounts(params: {
+    workspaceId: string;
+    apiKey?: string | null;
+  }): Promise<{ synced: number; errors: number }> {
+    return { synced: 0, errors: 0 };
+  }
+
+  async disconnectAccount(params: {
+    providerAccountId: string;
+    apiKey?: string | null;
+  }): Promise<void> {
+    const serviceClient = createServiceClient();
+    const { data } = await serviceClient
+      .from("social_accounts")
+      .select("workspace_id")
+      .eq("outstand_account_id", params.providerAccountId)
+      .single();
+
+    if (data) {
+      await disconnectYouTubeAccount(data.workspace_id, params.providerAccountId);
+    }
+  }
+
+  // ── Posting ────────────────────────────────────────────
+
+  async createPost(params: {
+    payload: CreatePostPayload;
+    workspaceId: string;
+    authorId: string;
+    apiKey?: string | null;
+  }): Promise<CreatePostResult> {
+    const { payload, workspaceId, authorId } = params;
+    const serviceClient = createServiceClient();
+    const authClient = await createClient();
+    const currentMonth = new Date().toISOString().slice(0, 7);
+
+    // YouTube requires a video
+    if (!payload.mediaUrls?.length) {
+      throw new Error("YouTube requires a video file to upload.");
+    }
+
+    // ── Increment usage counter ──────────────────────────
+    const { error: incError } = await authClient.rpc(
+      "increment_post_usage",
+      { p_workspace_id: workspaceId, p_month: currentMonth }
+    );
+
+    if (incError) {
+      if (incError.message?.includes("limit") || incError.message?.includes("exceeded")) {
+        throw new Error("You've reached your plan's post limit for this month. Upgrade to continue.");
+      }
+      throw new Error(`Publishing failed: ${incError.message}`);
+    }
+
+    // ── Resolve account ──────────────────────────────────
+    let accountId = payload.accountIds[0] ?? "";
+
+    if (!accountId.startsWith("yt_")) {
+      // Resolve username → outstand_account_id
+      const { data: found } = await serviceClient
+        .from("social_accounts")
+        .select("outstand_account_id")
+        .eq("workspace_id", workspaceId)
+        .eq("username", accountId)
+        .like("outstand_account_id", "yt_%")
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (found) {
+        accountId = found.outstand_account_id;
+      } else {
+        await authClient.rpc("decrement_post_usage", {
+          p_workspace_id: workspaceId,
+          p_month: currentMonth,
+        });
+        throw new Error(`No valid access token for YouTube account ${accountId}. Please reconnect.`);
+      }
+    }
+
+    const tokenData = await getYouTubeAccessToken(workspaceId, accountId);
+    if (!tokenData) {
+      await authClient.rpc("decrement_post_usage", {
+        p_workspace_id: workspaceId,
+        p_month: currentMonth,
+      });
+      throw new Error(`YouTube access token expired or invalid. Please reconnect.`);
+    }
+
+    // ── Upload video ─────────────────────────────────────
+    const isShort = payload.format === "short";
+    const ytConfig = payload.youtubeConfig;
+
+    let result;
+    try {
+      result = await uploadYouTubeVideo({
+        channelId: tokenData.channelId,
+        accessToken: tokenData.accessToken,
+        videoUrl: payload.mediaUrls[0]!,
+        title: payload.title || payload.content.slice(0, 100) || "Untitled",
+        description: payload.content,
+        isShort,
+        privacyStatus: ytConfig?.privacyStatus ?? "public",
+        categoryId: ytConfig?.categoryId ?? "22",
+        tags: ytConfig?.tags,
+        madeForKids: ytConfig?.madeForKids ?? false,
+        scheduledAt: payload.scheduleAt,
+        thumbnailUrl: payload.thumbnail?.uploadedUrl,
+      });
+    } catch (err) {
+      await authClient.rpc("decrement_post_usage", {
+        p_workspace_id: workspaceId,
+        p_month: currentMonth,
+      });
+      throw err;
+    }
+
+    // ── Save post record ─────────────────────────────────
+    const status = payload.scheduleAt ? "scheduled" : "published";
+    const providerPostId = `yt_${result.videoId}`;
+
+    await serviceClient
+      .from("posts")
+      .insert({
+        workspace_id: workspaceId,
+        author_id: authorId,
+        content: payload.content,
+        platforms: ["youtube"],
+        account_ids: payload.accountIds,
+        media_urls: payload.mediaUrls ?? [],
+        status,
+        scheduled_at: payload.scheduleAt ?? null,
+        published_at: status === "published" ? new Date().toISOString() : null,
+        outstand_post_id: providerPostId,
+        first_comment: null,
+      });
+
+    return {
+      providerPostId,
+      status: status as "published" | "scheduled",
+    };
+  }
+
+  async getPostStatus(params: {
+    providerPostId: string;
+    apiKey?: string | null;
+  }): Promise<PostStatusResult> {
+    // Check our DB first
+    const serviceClient = createServiceClient();
+
+    const { data } = await serviceClient
+      .from("posts")
+      .select("status, published_at, workspace_id, account_ids")
+      .eq("outstand_post_id", params.providerPostId)
+      .single();
+
+    if (!data) {
+      return { providerPostId: params.providerPostId, status: "draft" };
+    }
+
+    // Optionally check YouTube API for real-time status
+    const videoId = params.providerPostId.replace("yt_", "");
+    const accountId = data.account_ids?.[0];
+
+    if (accountId && data.workspace_id) {
+      try {
+        const tokenData = await getYouTubeAccessToken(data.workspace_id, accountId);
+        if (tokenData) {
+          const ytStatus = await getYouTubeVideoStatus(videoId, tokenData.accessToken);
+          return {
+            providerPostId: params.providerPostId,
+            status: ytStatus.status === "processed" ? "published" : "scheduled",
+            publishedAt: ytStatus.publishedAt,
+          };
+        }
+      } catch {
+        // Fall back to DB status
+      }
+    }
+
+    const statusMap: Record<string, PostStatusResult["status"]> = {
+      scheduled: "scheduled",
+      published: "published",
+      failed: "failed",
+      draft: "draft",
+    };
+
+    return {
+      providerPostId: params.providerPostId,
+      status: statusMap[data.status ?? ""] ?? "draft",
+      publishedAt: data.published_at ?? undefined,
+    };
+  }
+
+  async deletePost(params: {
+    providerPostId: string;
+    apiKey?: string | null;
+  }): Promise<void> {
+    const serviceClient = createServiceClient();
+
+    // Try to delete from YouTube
+    const videoId = params.providerPostId.replace("yt_", "");
+    const { data } = await serviceClient
+      .from("posts")
+      .select("workspace_id, account_ids")
+      .eq("outstand_post_id", params.providerPostId)
+      .single();
+
+    if (data?.account_ids?.[0] && data.workspace_id) {
+      try {
+        const tokenData = await getYouTubeAccessToken(data.workspace_id, data.account_ids[0]);
+        if (tokenData) {
+          await deleteYouTubeVideo(videoId, tokenData.accessToken);
+        }
+      } catch (err) {
+        console.error("[youtube-direct] Failed to delete from YouTube:", err);
+      }
+    }
+
+    await serviceClient
+      .from("posts")
+      .update({ status: "cancelled" })
+      .eq("outstand_post_id", params.providerPostId);
+  }
+
+  // ── Analytics (stub) ───────────────────────────────────
+
+  async getPostAnalytics(params: {
+    providerPostId: string;
+    apiKey?: string | null;
+  }): Promise<PostAnalytics> {
+    void params;
+    return { likes: 0, comments: 0, shares: 0, reach: 0, impressions: 0, clicks: 0 };
+  }
+
+  // ── Webhooks ───────────────────────────────────────────
+
+  parseWebhook(params: {
+    body: string;
+    signature: string;
+    secret: string;
+  }): WebhookEvent | null {
+    void params;
+    return null;
+  }
+}
