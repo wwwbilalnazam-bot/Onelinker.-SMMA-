@@ -161,6 +161,7 @@ export interface Post {
   title?: string | null;
   content: string;
   channel_content?: Record<string, string> | null;
+  account_content?: Record<string, string> | null;
   options?: Record<string, any> | null;
   media_urls: string[];
   platforms: Platform[];
@@ -236,6 +237,12 @@ export interface InboxMessage {
   post_id: string | null;
   status: InboxMessageStatus;
   received_at: string;
+  updated_at?: string;
+  reply_text?: string | null;
+  replied_at?: string | null;
+  reply_count?: number;
+  media_urls?: string[] | null;
+  attachments?: Record<string, any> | null;
 }
 
 export interface Notification {

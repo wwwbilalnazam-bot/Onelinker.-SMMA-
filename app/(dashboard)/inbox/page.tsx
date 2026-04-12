@@ -1,719 +1,750 @@
-"use client";
+'use client';
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from 'react';
+import { useWorkspace } from '@/hooks/useWorkspace';
+import { createClient } from '@/lib/supabase/client';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
-  MessageSquare, Send, Archive, Search, Heart, Reply,
-  MoreHorizontal, MessageCircle, ChevronRight, Loader2,
-  Twitter, Instagram, Linkedin, Facebook, Youtube, Globe,
-  CheckCircle2, X, Filter, Clock, Eye, Trash2, RefreshCw,
-  ExternalLink,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import toast from "react-hot-toast";
-import { createClient } from "@/lib/supabase/client";
-import { useWorkspace } from "@/hooks/useWorkspace";
-import { InboxMessageStatus } from "@/types";
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
+import {
+  MessageSquare, Clock, RefreshCw, Facebook, Instagram, Twitter, Youtube,
+  MoreHorizontal, ChevronDown, X, CornerDownRight, Search
+} from 'lucide-react';
+import toast from 'react-hot-toast';
 
-// ─── Types ────────────────────────────────────────────────────
-
-type ItemStatus = "unread" | "read" | "replied" | "archived";
-
-interface ThreadEntry {
+interface Post {
   id: string;
-  author: string;
-  avatar: string;
-  text: string;
-  isMe: boolean;
-  time: string;
+  content: string;
+  platforms: string[];
+  published_at: string;
+  thumbnail_url?: string;
+  media_urls?: string[];
 }
 
-interface CommentItem {
+interface Message {
   id: string;
   platform: string;
-  author_name: string;
-  author_avatar: string;
+  author_name?: string;
+  sender_name?: string;
   content: string;
-  status: ItemStatus;
+  status: 'unread' | 'read' | 'replied' | 'archived';
   received_at: string;
-  received_at_raw: string;
-  post_id: string | null;
-  post_preview?: string;
-  likes?: number;
-  thread?: ThreadEntry[];
+  message_type: 'comment' | 'message';
+  author_avatar?: string;
+  sender_avatar?: string;
+  post?: Post;
+  reply_text?: string;
+  external_reply_id?: string;
+  replied_at?: string;
+  replied_by_user_id?: string;
 }
-
-// ─── Platform config ──────────────────────────────────────────
 
 const PLATFORM_ICONS: Record<string, React.ElementType> = {
-  twitter: Twitter, linkedin: Linkedin, instagram: Instagram,
-  facebook: Facebook, youtube: Youtube, threads: Globe,
-  bluesky: Globe, tiktok: Globe, pinterest: Globe, google_business: Globe,
+  facebook: Facebook,
+  instagram: Instagram,
+  twitter: Twitter,
+  youtube: Youtube,
 };
 
-const PLATFORM_COLORS: Record<string, { text: string; bg: string; dot: string }> = {
-  twitter:   { text: "text-sky-600 dark:text-sky-400",   bg: "bg-sky-500/10",   dot: "bg-sky-500" },
-  linkedin:  { text: "text-blue-600 dark:text-blue-400", bg: "bg-blue-500/10",  dot: "bg-blue-500" },
-  instagram: { text: "text-pink-600 dark:text-pink-400", bg: "bg-pink-500/10",  dot: "bg-pink-500" },
-  facebook:  { text: "text-blue-700 dark:text-blue-500", bg: "bg-blue-600/10",  dot: "bg-blue-500" },
-  youtube:   { text: "text-red-600 dark:text-red-400",   bg: "bg-red-500/10",   dot: "bg-red-500" },
-  threads:   { text: "text-zinc-600 dark:text-zinc-400", bg: "bg-zinc-500/10",  dot: "bg-zinc-400" },
-  bluesky:   { text: "text-sky-500 dark:text-sky-300",   bg: "bg-sky-400/10",   dot: "bg-sky-400" },
-  tiktok:    { text: "text-zinc-600 dark:text-zinc-300", bg: "bg-zinc-500/10",  dot: "bg-zinc-400" },
+const PLATFORM_COLORS: Record<string, { bg: string; text: string; badge: string }> = {
+  facebook: { bg: 'bg-blue-50 dark:bg-blue-950', text: 'text-blue-700 dark:text-blue-400', badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' },
+  instagram: { bg: 'bg-pink-50 dark:bg-pink-950', text: 'text-pink-700 dark:text-pink-400', badge: 'bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300' },
+  twitter: { bg: 'bg-sky-50 dark:bg-sky-950', text: 'text-sky-700 dark:text-sky-400', badge: 'bg-sky-100 text-sky-700 dark:bg-sky-900 dark:text-sky-300' },
+  youtube: { bg: 'bg-red-50 dark:bg-red-950', text: 'text-red-700 dark:text-red-400', badge: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' },
 };
 
-const PLATFORM_LABELS: Record<string, string> = {
-  twitter: "X", linkedin: "LinkedIn", instagram: "Instagram",
-  facebook: "Facebook", youtube: "YouTube", tiktok: "TikTok",
-  threads: "Threads", bluesky: "Bluesky",
+const STATUS_TABS = [
+  { value: '', label: 'All' },
+  { value: 'unread', label: 'Unread' },
+  { value: 'read', label: 'Read' },
+  { value: 'replied', label: 'Replied' },
+  { value: 'archived', label: 'Archived' },
+];
+
+const STATUS_BADGE_VARIANT: Record<string, any> = {
+  unread: 'warning',
+  read: 'outline',
+  replied: 'success',
+  archived: 'secondary',
 };
 
-// ─── Helpers ──────────────────────────────────────────────────
+const PLATFORM_OPTIONS = [
+  { value: 'facebook', label: 'Facebook' },
+  { value: 'instagram', label: 'Instagram' },
+  { value: 'twitter', label: 'Twitter/X' },
+  { value: 'youtube', label: 'YouTube' },
+];
 
-function getInitials(name: string | null) {
-  if (!name) return "?";
-  return name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
-}
+const TYPE_FILTERS = [
+  { value: 'all', label: 'All Messages' },
+  { value: 'comments', label: 'Comments' },
+  { value: 'messages', label: 'Direct Messages' },
+];
 
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "Just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  if (days < 7) return `${days}d ago`;
-  return new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-
-// ─── Platform badge ───────────────────────────────────────────
-
-function PlatformBadge({ platform, size = "sm" }: { platform: string; size?: "sm" | "md" }) {
-  const Icon = PLATFORM_ICONS[platform] ?? MessageSquare;
-  const pc = PLATFORM_COLORS[platform];
-  return (
-    <span className={cn(
-      "inline-flex items-center gap-1 rounded-full font-medium capitalize",
-      pc?.bg ?? "bg-muted/40", pc?.text ?? "text-muted-foreground",
-      size === "sm" ? "px-2 py-0.5 text-[10px]" : "px-2.5 py-1 text-xs"
-    )}>
-      <Icon className={size === "sm" ? "h-2.5 w-2.5" : "h-3 w-3"} />
-      {PLATFORM_LABELS[platform] ?? platform}
-    </span>
-  );
-}
-
-// ─── Status badge ─────────────────────────────────────────────
-
-function StatusDot({ status }: { status: ItemStatus }) {
-  const config: Record<ItemStatus, { color: string; label: string }> = {
-    unread:   { color: "bg-blue-500",    label: "Unread" },
-    read:     { color: "bg-muted-foreground/40", label: "Read" },
-    replied:  { color: "bg-emerald-500", label: "Replied" },
-    archived: { color: "bg-muted-foreground/30", label: "Archived" },
-  };
-  const c = config[status];
-  return (
-    <span className="flex items-center gap-1.5" title={c.label}>
-      <span className={cn("h-1.5 w-1.5 rounded-full", c.color)} />
-      <span className="text-[10px] text-muted-foreground font-medium">{c.label}</span>
-    </span>
-  );
-}
-
-// ─── Comment list item ────────────────────────────────────────
-
-function CommentListItem({
-  item,
-  isActive,
-  onClick,
-}: {
-  item: CommentItem;
-  isActive: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "w-full flex items-start gap-3 px-4 py-3.5 text-left transition-all duration-150",
-        isActive
-          ? "bg-primary/5 border-l-2 border-l-primary"
-          : "hover:bg-muted/30 border-l-2 border-l-transparent",
-        item.status === "unread" && !isActive && "bg-muted/20"
-      )}
-    >
-      {/* Avatar */}
-      <div className="relative shrink-0">
-        <div className={cn(
-          "flex h-10 w-10 items-center justify-center rounded-full text-xs font-bold",
-          item.status === "unread"
-            ? "bg-primary/10 text-primary"
-            : "bg-muted/60 text-muted-foreground"
-        )}>
-          {getInitials(item.author_name)}
-        </div>
-        {/* Platform dot */}
-        <span className={cn(
-          "absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full flex items-center justify-center ring-2 ring-card",
-          PLATFORM_COLORS[item.platform]?.bg ?? "bg-muted/60"
-        )}>
-          {(() => {
-            const Icon = PLATFORM_ICONS[item.platform] ?? MessageCircle;
-            return <Icon className={cn("h-2 w-2", PLATFORM_COLORS[item.platform]?.text ?? "text-muted-foreground")} />;
-          })()}
-        </span>
-      </div>
-
-      {/* Content */}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-2 mb-0.5">
-          <p className={cn(
-            "text-sm truncate",
-            item.status === "unread" ? "font-semibold text-foreground" : "font-medium text-muted-foreground"
-          )}>
-            {item.author_name}
-          </p>
-          <span className="text-[10px] text-muted-foreground shrink-0">{timeAgo(item.received_at_raw)}</span>
-        </div>
-        <p className={cn(
-          "text-xs line-clamp-2 leading-relaxed",
-          item.status === "unread" ? "text-foreground/80" : "text-muted-foreground"
-        )}>
-          {item.content}
-        </p>
-        <div className="flex items-center gap-2 mt-2">
-          <PlatformBadge platform={item.platform} />
-          {item.status === "unread" && <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
-          {item.status === "replied" && (
-            <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
-              <CheckCircle2 className="h-2.5 w-2.5" /> Replied
-            </span>
-          )}
-        </div>
-      </div>
-    </button>
-  );
-}
-
-// ─── Detail panel ─────────────────────────────────────────────
-
-function CommentDetail({
-  item,
-  onClose,
-  onArchive,
-  onLike,
-  onReply,
-  onDelete,
-}: {
-  item: CommentItem;
-  onClose: () => void;
-  onArchive: () => void;
-  onLike: () => void;
-  onReply: (text: string) => void;
-  onDelete: () => void;
-}) {
-  const [replyText, setReplyText] = useState("");
-  const messagesEnd = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    messagesEnd.current?.scrollIntoView({ behavior: "smooth" });
-  }, [item.thread?.length]);
-
-  function handleSend() {
-    if (!replyText.trim()) return;
-    onReply(replyText.trim());
-    setReplyText("");
-  }
-
-  return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-border/40">
-        <div className="flex items-center gap-3">
-          {/* Mobile back */}
-          <button onClick={onClose} className="lg:hidden flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors shrink-0">
-            <ChevronRight className="h-4 w-4 rotate-180" />
-          </button>
-
-          {/* Author */}
-          <div className={cn(
-            "flex h-10 w-10 items-center justify-center rounded-full text-xs font-bold shrink-0",
-            "bg-primary/10 text-primary"
-          )}>
-            {getInitials(item.author_name)}
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-foreground">{item.author_name}</p>
-            <div className="flex items-center gap-2 mt-0.5">
-              <PlatformBadge platform={item.platform} />
-              <span className="text-xs text-muted-foreground">{timeAgo(item.received_at_raw)}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-1">
-          <button
-            onClick={onLike}
-            className="flex items-center gap-1.5 h-8 px-2.5 rounded-xl text-xs text-muted-foreground hover:text-pink-500 hover:bg-pink-500/10 transition-all"
-            title="Like"
-          >
-            <Heart className={cn("h-3.5 w-3.5", (item.likes ?? 0) > 0 && "fill-pink-500 text-pink-500")} />
-            {(item.likes ?? 0) > 0 && <span>{item.likes}</span>}
-          </button>
-          <button
-            onClick={onArchive}
-            className="flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-            title="Archive"
-          >
-            <Archive className="h-4 w-4" />
-          </button>
-          <button
-            onClick={onDelete}
-            className="flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors"
-            title="Delete"
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* Thread */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-4">
-        {/* Original post context */}
-        {item.post_preview && (
-          <div className="rounded-xl border border-border/50 bg-muted/20 px-4 py-3">
-            <div className="flex items-center gap-1.5 mb-2">
-              <Eye className="h-3 w-3 text-muted-foreground" />
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Original post</p>
-            </div>
-            <p className="text-sm text-foreground leading-relaxed">{item.post_preview}</p>
-          </div>
-        )}
-
-        {/* Messages */}
-        {item.thread && item.thread.length > 0 ? (
-          <div className="space-y-4">
-            {item.thread.map((entry) => (
-              <div key={entry.id} className={cn("flex gap-3", entry.isMe && "flex-row-reverse")}>
-                <div className={cn(
-                  "h-8 w-8 rounded-full shrink-0 flex items-center justify-center text-[10px] font-bold",
-                  entry.isMe ? "bg-primary/10 text-primary" : "bg-muted/60 text-muted-foreground"
-                )}>
-                  {entry.isMe ? "ME" : entry.avatar}
-                </div>
-                <div className={cn("max-w-[75%]", entry.isMe && "items-end")}>
-                  <p className={cn("text-[11px] text-muted-foreground mb-1", entry.isMe && "text-right")}>
-                    {entry.isMe ? "You" : entry.author} · {entry.time}
-                  </p>
-                  <div className={cn(
-                    "rounded-2xl px-4 py-3 text-sm leading-relaxed",
-                    entry.isMe
-                      ? "bg-primary text-primary-foreground rounded-tr-md"
-                      : "bg-muted/40 text-foreground rounded-tl-md border border-border/30"
-                  )}>
-                    {entry.text}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-2xl bg-muted/30 border border-border/30 px-4 py-3.5">
-            <p className="text-sm text-foreground leading-relaxed">{item.content}</p>
-          </div>
-        )}
-        <div ref={messagesEnd} />
-      </div>
-
-      {/* Reply box */}
-      <div className="border-t border-border/40 p-4">
-        <div className="flex items-end gap-2.5">
-          <div className="flex-1 relative">
-            <textarea
-              value={replyText}
-              onChange={(e) => setReplyText(e.target.value)}
-              placeholder="Write a reply…"
-              rows={2}
-              className="w-full resize-none rounded-xl border border-border/50 bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/25 focus:border-primary/30 transition-all"
-              onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleSend(); }}
-            />
-          </div>
-          <button
-            onClick={handleSend}
-            disabled={!replyText.trim()}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-white hover:bg-primary/90 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-sm"
-          >
-            <Send className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="flex items-center justify-between mt-2">
-          <p className="text-[10px] text-muted-foreground">
-            Replying on <span className="capitalize font-medium">{PLATFORM_LABELS[item.platform] ?? item.platform}</span>
-          </p>
-          <p className="text-[10px] text-muted-foreground">Ctrl+Enter to send</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Main page ────────────────────────────────────────────────
-
-export default function CommentsPage() {
-  const supabase = createClient();
+export default function InboxPage() {
   const { workspace } = useWorkspace();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const [items, setItems]       = useState<CommentItem[]>([]);
-  const [loading, setLoading]   = useState(true);
-  const [selected, setSelected] = useState<CommentItem | null>(null);
-  const [search, setSearch]     = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | ItemStatus>("all");
-  const [platformFilter, setPlatformFilter] = useState<string | null>(null);
+  // Filters
+  const [type, setType] = useState<'all' | 'comments' | 'messages'>('all');
+  const [status, setStatus] = useState('');
+  const [platforms, setPlatforms] = useState<string[]>([]);
+  const [search, setSearch] = useState('');
+  const [limit, setLimit] = useState(50);
+  const [unreadCount, setUnreadCount] = useState(0);
 
-  const fetchItems = useCallback(async () => {
-    if (!workspace?.id) return;
-    setLoading(true);
+  // Action menus & Reply
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [replyId, setReplyId] = useState<string | null>(null);
+  const [replyContent, setReplyContent] = useState('');
+  const [isReplying, setIsReplying] = useState(false);
 
-    const { data } = await supabase
-      .from("inbox_messages")
-      .select("id, platform, author_name, author_avatar, content, status, received_at, post_id")
-      .eq("workspace_id", workspace.id)
-      .not("post_id", "is", null)
-      .neq("status", InboxMessageStatus.Archived)
-      .order("received_at", { ascending: false });
-
-    const mapped: CommentItem[] = (data ?? []).map((row) => ({
-      id:             row.id,
-      platform:       row.platform ?? "twitter",
-      author_name:    row.author_name ?? "Unknown",
-      author_avatar:  getInitials(row.author_name),
-      content:        row.content ?? "",
-      status:         (row.status as ItemStatus) ?? "unread",
-      received_at:    new Date(row.received_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }),
-      received_at_raw: row.received_at,
-      post_id:        row.post_id,
-      likes:          undefined,
-      thread:         [{
-        id: "t0",
-        author: row.author_name ?? "Unknown",
-        avatar: getInitials(row.author_name),
-        text: row.content ?? "",
-        isMe: false,
-        time: new Date(row.received_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
-      }],
-    }));
-
-    setItems(mapped);
-    setLoading(false);
-  }, [workspace?.id]);
-
-  useEffect(() => { fetchItems(); }, [fetchItems]);
-
-  // ── Computed ──────────────────────────────────────────────────
-
-  const unreadCount = items.filter((i) => i.status === "unread").length;
-  const repliedCount = items.filter((i) => i.status === "replied").length;
-
-  const usedPlatforms = Array.from(new Set(items.map((i) => i.platform)));
-
-  const filtered = items.filter((item) => {
-    if (item.status === "archived") return false;
-    if (statusFilter !== "all" && item.status !== statusFilter) return false;
-    if (platformFilter && item.platform !== platformFilter) return false;
-    if (search) {
-      const q = search.toLowerCase();
-      return item.content.toLowerCase().includes(q) || item.author_name.toLowerCase().includes(q);
+  const fetchMessages = useCallback(async () => {
+    if (!workspace?.id) {
+      setIsLoading(false);
+      return;
     }
-    return true;
-  });
 
-  // ── Handlers ──────────────────────────────────────────────────
+    try {
+      setIsLoading(true);
+      setError(null);
 
-  async function handleSelect(item: CommentItem) {
-    if (item.status === "unread" && workspace?.id) {
-      await supabase
-        .from("inbox_messages")
-        .update({ status: InboxMessageStatus.Read })
-        .eq("id", item.id)
-        .eq("workspace_id", workspace.id);
-      const updated = { ...item, status: "read" as ItemStatus };
-      setItems((prev) => prev.map((i) => i.id === item.id ? updated : i));
-      setSelected(updated);
-    } else {
-      setSelected(item);
+      const params = new URLSearchParams({
+        workspace_id: workspace.id,
+        type,
+        limit: limit.toString(),
+        offset: '0',
+      });
+
+      if (status) params.append('status', status);
+      if (search) params.append('search', search);
+      platforms.forEach((p) => params.append('platform', p));
+
+      const response = await fetch(`/api/inbox/messages?${params.toString()}`);
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to fetch messages');
+      }
+
+      const result = await response.json();
+      setMessages(result.data || []);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Failed to fetch messages';
+      setError(errorMsg);
+      console.error('[inbox] Error:', errorMsg);
+    } finally {
+      setIsLoading(false);
     }
-  }
+  }, [workspace?.id, type, status, platforms, search, limit]);
 
-  async function handleArchive(id: string) {
+  // Fetch unread count
+  useEffect(() => {
     if (!workspace?.id) return;
-    await supabase
-      .from("inbox_messages")
-      .update({ status: InboxMessageStatus.Archived })
-      .eq("id", id)
-      .eq("workspace_id", workspace.id);
-    setItems((prev) => prev.map((i) => i.id === id ? { ...i, status: "archived" as ItemStatus } : i));
-    if (selected?.id === id) setSelected(null);
-    toast.success("Comment archived");
-  }
 
-  async function handleDelete(id: string) {
-    if (!workspace?.id) return;
-    const { error } = await supabase
-      .from("inbox_messages")
-      .delete()
-      .eq("id", id)
-      .eq("workspace_id", workspace.id);
-    if (error) { toast.error("Failed to delete"); return; }
-    setItems((prev) => prev.filter((i) => i.id !== id));
-    if (selected?.id === id) setSelected(null);
-    toast.success("Comment deleted");
-  }
+    const fetchUnreadCount = async () => {
+      try {
+        const params = new URLSearchParams({
+          workspace_id: workspace.id,
+          status: 'unread',
+          limit: '1',
+          offset: '0',
+        });
 
-  function handleLike(id: string) {
-    setItems((prev) => prev.map((i) => i.id === id ? { ...i, likes: (i.likes ?? 0) + 1 } : i));
-    setSelected((s) => s && s.id === id ? { ...s, likes: (s.likes ?? 0) + 1 } : s);
-  }
-
-  async function handleReply(id: string, text: string) {
-    const newEntry: ThreadEntry = {
-      id: `t${Date.now()}`,
-      author: "You",
-      avatar: "ME",
-      text,
-      isMe: true,
-      time: "Just now",
+        const response = await fetch(`/api/inbox/messages?${params.toString()}`);
+        if (response.ok) {
+          const result = await response.json();
+          setUnreadCount(result.total || 0);
+        }
+      } catch (err) {
+        console.error('[unread count] Error:', err);
+      }
     };
 
-    if (workspace?.id) {
-      await supabase
-        .from("inbox_messages")
-        .update({ status: InboxMessageStatus.Replied })
-        .eq("id", id)
-        .eq("workspace_id", workspace.id);
+    fetchUnreadCount();
+  }, [workspace?.id]);
+
+  useEffect(() => {
+    fetchMessages();
+  }, [fetchMessages]);
+
+  // Real-time subscription for new messages and updates
+  useEffect(() => {
+    if (!workspace?.id) return;
+
+    const setupSubscriptions = async () => {
+      const supabase = await createClient();
+
+      // Subscribe to inbox_messages (comments) INSERT and UPDATE events
+      const commentsChannel = supabase
+        .channel(`inbox-comments-${workspace.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'inbox_messages',
+            filter: `workspace_id=eq.${workspace.id}`,
+          },
+          (payload) => {
+            console.log('[real-time] New comment:', payload.new);
+            setMessages((prev) => [payload.new as Message, ...prev]);
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'inbox_messages',
+            filter: `workspace_id=eq.${workspace.id}`,
+          },
+          (payload) => {
+            console.log('[real-time] Comment updated:', payload.new);
+            setMessages((prev) =>
+              prev.map((m) => (m.id === payload.new.id ? { ...payload.new as Message, message_type: 'comment' } : m))
+            );
+          }
+        )
+        .subscribe();
+
+      // Subscribe to messages (DMs) INSERT and UPDATE events
+      const dmsChannel = supabase
+        .channel(`inbox-dms-${workspace.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'messages',
+            filter: `workspace_id=eq.${workspace.id}`,
+          },
+          (payload) => {
+            console.log('[real-time] New DM:', payload.new);
+            setMessages((prev) => [{ ...payload.new, message_type: 'message' } as Message, ...prev]);
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'messages',
+            filter: `workspace_id=eq.${workspace.id}`,
+          },
+          (payload) => {
+            console.log('[real-time] DM updated:', payload.new);
+            setMessages((prev) =>
+              prev.map((m) => (m.id === payload.new.id ? { ...payload.new as Message, message_type: 'message' } : m))
+            );
+          }
+        )
+        .subscribe();
+
+      return () => {
+        commentsChannel.unsubscribe();
+        dmsChannel.unsubscribe();
+      };
+    };
+
+    const unsubscribe = setupSubscriptions();
+    return () => {
+      unsubscribe.then((fn) => fn?.());
+    };
+  }, [workspace?.id]);
+
+  const handleSync = async () => {
+    if (!workspace?.id || isSyncing) return;
+
+    try {
+      setIsSyncing(true);
+      const toastId = toast.loading('Syncing messages...');
+
+      const response = await fetch('/api/inbox/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workspaceId: workspace.id,
+          platforms: platforms.length > 0 ? platforms : undefined,
+          syncComments: type === 'all' || type === 'comments',
+          syncMessages: type === 'all' || type === 'messages',
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.details || result.error || 'Sync failed');
+      }
+
+      const syncedCount = result.data?.synced || 0;
+      toast.success(`Sync complete! ${syncedCount} items updated.`, { id: toastId });
+
+      await fetchMessages();
+    } catch (err) {
+      console.error('[InboxSync] Error:', err);
+      toast.error(err instanceof Error ? err.message : 'Sync failed', { duration: 5000 });
+    } finally {
+      setIsSyncing(false);
     }
+  };
 
-    const updater = (i: CommentItem) =>
-      i.id === id
-        ? { ...i, status: "replied" as ItemStatus, thread: [...(i.thread ?? []), newEntry] }
-        : i;
+  const handleUpdateStatus = async (messageId: string, newStatus: string, table: 'inbox_messages' | 'messages') => {
+    try {
+      // Find current message to get previous status
+      const currentMessage = messages.find(m => m.id === messageId);
 
-    setItems((prev) => prev.map(updater));
-    setSelected((s) => s ? updater(s) : s);
-    toast.success("Reply sent!");
+      const response = await fetch(`/api/inbox/messages/${messageId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus, table }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to update status');
+      }
+
+      // Optimistically update local state
+      setMessages((prev) =>
+        prev.map((m) => (m.id === messageId ? { ...m, status: newStatus as any } : m))
+      );
+
+      toast.success(`Message marked as ${newStatus}`);
+      setOpenMenuId(null);
+    } catch (err) {
+      toast.error('Failed to update status');
+      console.error('[update status] Error:', err);
+    }
+  };
+
+  const handleReply = async (messageId: string, table: 'inbox_messages' | 'messages') => {
+    if (!replyContent.trim()) return;
+
+    try {
+      setIsReplying(true);
+      const response = await fetch(`/api/inbox/reply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messageId, table, content: replyContent.trim() }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to send reply');
+      }
+
+      // Optimistically update local state
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === messageId
+            ? { ...m, status: 'replied' as any, reply_text: replyContent.trim() }
+            : m
+        )
+      );
+
+      toast.success('Reply sent successfully!');
+      setReplyId(null);
+      setReplyContent('');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to send reply');
+      console.error('[reply] Error:', err);
+    } finally {
+      setIsReplying(false);
+    }
+  };
+
+  const togglePlatform = (platform: string) => {
+    setPlatforms((prev) =>
+      prev.includes(platform) ? prev.filter((p) => p !== platform) : [...prev, platform]
+    );
+  };
+
+  if (!workspace?.id) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <p className="text-gray-500">Loading workspace...</p>
+      </div>
+    );
   }
 
-  // ── Status filter tabs ────────────────────────────────────────
-
-  const STATUS_TABS: { key: "all" | ItemStatus; label: string; count: number }[] = [
-    { key: "all",     label: "All",     count: items.filter((i) => i.status !== "archived").length },
-    { key: "unread",  label: "Unread",  count: unreadCount },
-    { key: "read",    label: "Read",    count: items.filter((i) => i.status === "read").length },
-    { key: "replied", label: "Replied", count: repliedCount },
-  ];
-
   return (
-    <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-5 page-enter">
+    <div className="flex flex-col h-[100dvh] md:h-[calc(100vh-3.5rem)] border rounded-xl overflow-hidden bg-white dark:bg-gray-800 shadow-sm border-gray-200 dark:border-gray-700">
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2.5">
-            <MessageCircle className="h-6 w-6 text-primary" />
-            Comments
-            {unreadCount > 0 && (
-              <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-primary text-[11px] font-bold text-white px-2">
-                {unreadCount}
+      {/* Top Header */}
+      <div className="flex items-center justify-between gap-4 px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shrink-0">
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Inbox</h1>
+          {unreadCount > 0 && (
+            <Badge variant="warning" className="rounded-full text-xs">
+              {Math.min(unreadCount, 99)}
+            </Badge>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          {/* Search Input — Hidden on mobile */}
+          <div className="relative hidden sm:flex w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500 dark:text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Search messages..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 h-9"
+            />
+          </div>
+          {/* Sync Button */}
+          <Button
+            onClick={handleSync}
+            disabled={isSyncing}
+            className="gap-2 shrink-0"
+          >
+            <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">{isSyncing ? 'Syncing...' : 'Sync Now'}</span>
+            <span className="sm:hidden">{isSyncing ? '' : 'Sync'}</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Filter Strip */}
+      <div className="flex items-center gap-3 px-6 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-x-auto shrink-0">
+
+        {/* Type Filter — Grouped button segment */}
+        <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 p-0.5 gap-0.5 shrink-0 bg-gray-50/50 dark:bg-gray-900/50">
+          {TYPE_FILTERS.map((tf) => (
+            <Button
+              key={tf.value}
+              onClick={() => setType(tf.value as any)}
+              variant={type === tf.value ? 'default' : 'ghost'}
+              size="sm"
+              className="rounded-md text-xs h-7 px-2"
+            >
+              {tf.label}
+            </Button>
+          ))}
+        </div>
+
+        {/* Divider */}
+        <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 shrink-0" />
+
+        {/* Status Tabs */}
+        {STATUS_TABS.map((tab) => (
+          <Button
+            key={tab.value}
+            onClick={() => setStatus(tab.value)}
+            variant={status === tab.value ? 'default' : 'outline'}
+            size="sm"
+            className="rounded-full gap-1 shrink-0 text-xs h-7 px-3 whitespace-nowrap"
+          >
+            {tab.label}
+            {tab.value === 'unread' && unreadCount > 0 && (
+              <span className="ml-0.5 inline-flex items-center justify-center w-4 h-4 rounded-full bg-blue-500 text-[9px] font-bold text-white">
+                {Math.min(unreadCount, 99)}
               </span>
             )}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            View and reply to comments on your posts across all platforms.
-          </p>
-        </div>
-        <button
-          onClick={fetchItems}
-          className="flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-          title="Refresh"
-        >
-          <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
-        </button>
-      </div>
-
-      {/* Stats strip */}
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { label: "Total", value: items.length, bg: "bg-blue-500/10", color: "text-blue-600 dark:text-blue-400", icon: MessageCircle },
-          { label: "Unread", value: unreadCount, bg: "bg-amber-500/10", color: "text-amber-600 dark:text-amber-400", icon: Clock },
-          { label: "Replied", value: repliedCount, bg: "bg-emerald-500/10", color: "text-emerald-600 dark:text-emerald-400", icon: CheckCircle2 },
-        ].map((stat) => (
-          <div key={stat.label} className="group rounded-2xl border border-border/50 bg-card p-4 hover:shadow-md hover:border-border/70 transition-all duration-200">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">{stat.label}</p>
-              <div className={cn("flex h-8 w-8 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-110", stat.bg)}>
-                <stat.icon className={cn("h-4 w-4", stat.color)} />
-              </div>
-            </div>
-            <p className="text-2xl font-bold text-foreground tabular-nums">{stat.value}</p>
-          </div>
+          </Button>
         ))}
+
+        {/* Divider */}
+        <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 shrink-0" />
+
+        {/* Platform Pills */}
+        {PLATFORM_OPTIONS.map((p) => {
+          const PlatformIcon = PLATFORM_ICONS[p.value] || MessageSquare;
+          return (
+            <Button
+              key={p.value}
+              onClick={() => togglePlatform(p.value)}
+              variant={platforms.includes(p.value) ? 'default' : 'outline'}
+              size="sm"
+              className="rounded-full gap-1 shrink-0 text-xs h-7 px-2.5 whitespace-nowrap"
+            >
+              <PlatformIcon className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">{p.label}</span>
+            </Button>
+          );
+        })}
+
+        {/* Clear Filters */}
+        {(status || platforms.length > 0 || search) && (
+          <Button
+            onClick={() => {
+              setStatus('');
+              setPlatforms([]);
+              setSearch('');
+            }}
+            variant="ghost"
+            size="sm"
+            className="ml-auto gap-1 shrink-0 text-xs h-7 px-2"
+          >
+            <X className="h-3 w-3" />
+            <span className="hidden sm:inline">Clear</span>
+          </Button>
+        )}
+
+        {/* Mobile Search — Visible only on mobile */}
+        <div className="sm:hidden ml-auto">
+          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
+            <Search className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
-      {/* Split layout */}
-      <div
-        className="grid grid-cols-1 lg:grid-cols-5 gap-4"
-        style={{ minHeight: "420px", height: "calc(100vh - 380px)" }}
-      >
-        {/* ── Left: comment list ──────────────────────────────── */}
-        <div className={cn(
-          "lg:col-span-2 flex flex-col rounded-2xl border border-border/50 bg-card overflow-hidden",
-          selected ? "hidden lg:flex" : "flex"
-        )}>
-          {/* Search + filters */}
-          <div className="p-3 border-b border-border/40 space-y-2.5">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search comments…"
-                className="w-full h-9 rounded-xl border border-border/50 bg-background/50 pl-9 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-primary/25 transition-all"
-              />
-              {search && (
-                <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                  <X className="h-3 w-3" />
-                </button>
-              )}
-            </div>
-
-            {/* Status tabs */}
-            <div className="flex gap-1 bg-muted/20 p-0.5 rounded-lg">
-              {STATUS_TABS.map(({ key, label, count }) => (
-                <button
-                  key={key}
-                  onClick={() => setStatusFilter(key)}
-                  className={cn(
-                    "flex-1 flex items-center justify-center gap-1 rounded-md py-1.5 text-xs font-medium transition-all",
-                    statusFilter === key
-                      ? "bg-card text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {label}
-                  {count > 0 && (
-                    <span className={cn(
-                      "inline-flex h-4 min-w-4 items-center justify-center rounded-full text-[9px] font-bold px-1",
-                      statusFilter === key ? "bg-foreground/10 text-foreground" : "bg-transparent text-muted-foreground"
-                    )}>
-                      {count}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-
-            {/* Platform filter */}
-            {usedPlatforms.length > 1 && (
-              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-                <button
-                  onClick={() => setPlatformFilter(null)}
-                  className={cn(
-                    "shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-medium transition-all",
-                    !platformFilter ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
-                  )}
-                >
-                  All
-                </button>
-                {usedPlatforms.map((p) => {
-                  const pc = PLATFORM_COLORS[p];
-                  const Icon = PLATFORM_ICONS[p];
-                  const active = platformFilter === p;
-                  return (
-                    <button
-                      key={p}
-                      onClick={() => setPlatformFilter(active ? null : p)}
-                      className={cn(
-                        "shrink-0 inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-medium transition-all",
-                        active
-                          ? `${pc?.bg} ${pc?.text} ring-1 ring-current/20`
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
-                      )}
-                    >
-                      {Icon && <Icon className="h-2.5 w-2.5" />}
-                      {PLATFORM_LABELS[p] ?? p}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+      {/* Messages List Container */}
+      <div className="flex-1 overflow-y-auto px-6 py-6 bg-gray-50/50 dark:bg-gray-900/50">
+        {error && (
+          <div className="p-4 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded-xl mb-6 max-w-4xl mx-auto">
+            <p className="text-red-700 dark:text-red-400 text-sm font-medium">{error}</p>
           </div>
+        )}
 
-          {/* Comment list */}
-          <div className="flex-1 overflow-y-auto divide-y divide-border/30">
-            {loading ? (
-              <div className="flex items-center justify-center h-40">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        {isLoading && (
+          <div className="space-y-4 max-w-4xl mx-auto">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="p-4 border border-gray-100 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 shadow-sm space-y-3">
+                <Skeleton className="h-4 w-1/3" />
+                <Skeleton className="h-3 w-2/3" />
+                <Skeleton className="h-3 w-full" />
               </div>
-            ) : filtered.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-40 gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/30">
-                  <MessageCircle className="h-6 w-6 text-muted-foreground/30" />
-                </div>
-                <div className="text-center">
-                  <p className="text-sm font-medium text-foreground">No comments yet</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {search ? "Try a different search term" : "Comments on your posts will appear here"}
-                  </p>
-                </div>
-              </div>
-            ) : filtered.map((item) => (
-              <CommentListItem
-                key={item.id}
-                item={item}
-                isActive={selected?.id === item.id}
-                onClick={() => handleSelect(item)}
-              />
             ))}
           </div>
+        )}
 
-          {/* Footer count */}
-          {!loading && filtered.length > 0 && (
-            <div className="border-t border-border/40 px-4 py-2.5">
-              <p className="text-[11px] text-muted-foreground">
-                {filtered.length} comment{filtered.length !== 1 ? "s" : ""}
-                {statusFilter !== "all" && ` (${statusFilter})`}
-              </p>
-            </div>
-          )}
-        </div>
+        {!isLoading && !error && messages.length === 0 && (
+          <div className="text-center py-24">
+            <MessageSquare className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600 mb-4" />
+            <p className="text-gray-900 dark:text-gray-200 font-medium text-lg">No messages found</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Select a different folder, clear your filters, or click Sync Now</p>
+          </div>
+        )}
 
-        {/* ── Right: detail ──────────────────────────────────── */}
-        <div className={cn(
-          "lg:col-span-3 flex flex-col rounded-2xl border border-border/50 bg-card overflow-hidden",
-          selected ? "flex" : "hidden lg:flex"
-        )}>
-          {!selected ? (
-            <div className="flex flex-col items-center justify-center h-full gap-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/20">
-                <MessageCircle className="h-8 w-8 text-muted-foreground/20" />
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-medium text-foreground">Select a comment</p>
-                <p className="text-xs text-muted-foreground mt-1">Choose a comment from the list to view and reply</p>
-              </div>
-            </div>
-          ) : (
-            <CommentDetail
-              item={selected}
-              onClose={() => setSelected(null)}
-              onArchive={() => handleArchive(selected.id)}
-              onLike={() => handleLike(selected.id)}
-              onReply={(text) => handleReply(selected.id, text)}
-              onDelete={() => handleDelete(selected.id)}
-            />
-          )}
-        </div>
+        {!isLoading && messages.length > 0 && (
+          <div className="space-y-4 max-w-4xl mx-auto">
+            {messages.map((msg) => {
+              const PlatformIcon = PLATFORM_ICONS[msg.platform] || MessageSquare;
+              const colors = PLATFORM_COLORS[msg.platform] || PLATFORM_COLORS.facebook;
+              const authorName = msg.author_name || msg.sender_name || 'Unknown';
+              const isComment = msg.message_type === 'comment';
+              const table = isComment ? 'inbox_messages' : 'messages';
+
+              return (
+                <div
+                  key={msg.id}
+                  className={`border rounded-xl overflow-hidden transition-all bg-white dark:bg-gray-800 shadow-sm ${
+                    msg.status === 'unread'
+                      ? 'border-l-4 border-l-blue-500 border-gray-200 dark:border-gray-700'
+                      : 'border border-gray-200 dark:border-gray-700'
+                  }`}
+                >
+                  {/* Post context (for comments only) */}
+                  {isComment && msg.post && (
+                    <div className="p-3 border-b border-gray-100 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-900/50">
+                      <div className="flex gap-2 items-center flex-wrap">
+                        <MessageSquare className="h-4 w-4 text-gray-500" />
+                        <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Commenting on:</span>
+                        <p className="text-xs text-gray-700 dark:text-gray-300 truncate max-w-lg">
+                          {msg.post.content}
+                        </p>
+                        <div className="ml-auto flex items-center gap-2">
+                          <span className="text-[10px] text-gray-500">
+                            {new Date(msg.post.published_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Message card */}
+                  <div className="p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Avatar className="h-9 w-9 flex-shrink-0">
+                            <AvatarImage
+                              src={msg.author_avatar || msg.sender_avatar || ''}
+                              alt={authorName}
+                            />
+                            <AvatarFallback className="text-xs font-semibold">
+                              {authorName[0]}
+                            </AvatarFallback>
+                          </Avatar>
+
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-gray-900 dark:text-white truncate text-sm">
+                              {authorName}
+                            </h3>
+                          </div>
+
+                          {/* Platform badge */}
+                          <Badge variant="secondary" className="text-xs whitespace-nowrap flex-shrink-0 gap-1">
+                            <PlatformIcon className="h-3 w-3" />
+                            <span className="capitalize">{msg.platform}</span>
+                          </Badge>
+                        </div>
+
+                        {/* Message content */}
+                        <p className="text-gray-700 dark:text-gray-300 text-sm line-clamp-2 mb-2">{msg.content}</p>
+
+                        {msg.reply_text && (
+                          <div className="mt-3 pl-4 border-l-2 border-green-200 dark:border-green-900 space-y-1 bg-green-50/50 dark:bg-green-950/20 p-2 rounded">
+                            <div className="flex items-center gap-1.5 text-[10px] font-medium text-green-700 dark:text-green-400 uppercase tracking-wider">
+                              <CornerDownRight className="h-3 w-3" />
+                              Your Reply
+                            </div>
+                            <p className="text-gray-700 dark:text-gray-300 text-sm">
+                              "{msg.reply_text}"
+                            </p>
+                            {msg.replied_at && (
+                              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+                                {new Date(msg.replied_at).toLocaleString()}
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Metadata */}
+                        <div className="flex items-center gap-3 flex-wrap text-xs text-gray-600 dark:text-gray-400 mt-3">
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {new Date(msg.received_at).toLocaleString()}
+                          </div>
+
+                          {msg.message_type === 'message' && (
+                            <Badge variant="secondary" className="text-xs">DM</Badge>
+                          )}
+
+                          <Badge variant={STATUS_BADGE_VARIANT[msg.status] || 'outline'} className="text-xs">
+                            {msg.status === 'unread' ? '● Unread' : msg.status === 'replied' ? '✓ Replied' : msg.status}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {/* Actions menu */}
+                      <div className="relative flex-shrink-0 flex items-center gap-1">
+                        <Button
+                          onClick={() => {
+                            if (replyId === msg.id) {
+                              setReplyId(null);
+                            } else {
+                              setReplyId(msg.id);
+                              setReplyContent('');
+                            }
+                          }}
+                          variant="ghost"
+                          size="sm"
+                          className="gap-1"
+                        >
+                          <CornerDownRight className="h-3 w-3" />
+                          Reply
+                        </Button>
+
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            {msg.status !== 'read' && (
+                              <DropdownMenuItem onClick={() => handleUpdateStatus(msg.id, 'read', table)}>
+                                Mark as Read
+                              </DropdownMenuItem>
+                            )}
+
+                            {msg.status !== 'unread' && (
+                              <DropdownMenuItem onClick={() => handleUpdateStatus(msg.id, 'unread', table)}>
+                                Mark as Unread
+                              </DropdownMenuItem>
+                            )}
+
+                            {msg.status !== 'replied' && (
+                              <DropdownMenuItem onClick={() => handleUpdateStatus(msg.id, 'replied', table)}>
+                                Mark as Replied
+                              </DropdownMenuItem>
+                            )}
+
+                            {msg.status !== 'archived' && (
+                              <DropdownMenuItem onClick={() => handleUpdateStatus(msg.id, 'archived', table)}>
+                                Archive
+                              </DropdownMenuItem>
+                            )}
+
+                            {msg.status === 'archived' && (
+                              <DropdownMenuItem onClick={() => handleUpdateStatus(msg.id, 'unread', table)}>
+                                Restore
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+
+                    {/* Inline Reply Interface */}
+                    {replyId === msg.id && (
+                      <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700">
+                        <div className="flex gap-3 items-start">
+                          <CornerDownRight className="h-4 w-4 text-gray-400 mt-2 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <textarea
+                              autoFocus
+                              value={replyContent}
+                              onChange={(e) => setReplyContent(e.target.value)}
+                              placeholder={`Reply to ${authorName}...`}
+                              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-800 transition-colors"
+                              rows={3}
+                            />
+                            <div className="flex justify-end gap-2 mt-2">
+                              <Button
+                                onClick={() => {
+                                  setReplyId(null);
+                                  setReplyContent('');
+                                }}
+                                variant="outline"
+                                size="sm"
+                              >
+                                Cancel
+                              </Button>
+                              <Button
+                                onClick={() => handleReply(msg.id, table)}
+                                disabled={!replyContent.trim() || isReplying}
+                                size="sm"
+                                className="gap-1.5"
+                              >
+                                {isReplying && <RefreshCw className="h-3 w-3 animate-spin" />}
+                                Send Reply
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Load more */}
+        {!isLoading && messages.length > 0 && (
+          <div className="text-center mt-8">
+            <Button
+              onClick={() => setLimit((prev) => prev + 50)}
+              variant="outline"
+            >
+              Load Older Messages
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

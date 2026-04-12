@@ -114,8 +114,15 @@ function PostMenu({ postId, onDelete }: { postId: string; onDelete: () => void }
               href={`/posts/${postId}`}
               className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-foreground hover:bg-muted/60 transition-colors border-b border-border/40"
             >
+              <Eye className="h-3.5 w-3.5" />
+              View Details
+            </Link>
+            <Link
+              href={`/create?edit=${postId}`}
+              className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-foreground hover:bg-muted/60 transition-colors border-b border-border/40"
+            >
               <Edit2 className="h-3.5 w-3.5" />
-              Edit
+              Edit Post
             </Link>
             <button
               onClick={() => {
@@ -179,7 +186,7 @@ export default function PostsPage() {
     try {
       const res = await fetch(`/api/posts/${postId}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete");
-      setPosts((prev) => prev.filter((p) => p.id !== postId));
+      refresh();
       toast.success("Post deleted");
     } catch (err) {
       toast.error("Failed to delete post");
@@ -294,7 +301,8 @@ export default function PostsPage() {
               {paginatedPosts.map((post) => (
                 <div
                   key={post.id}
-                  className="rounded-lg border border-border/40 bg-card px-6 py-4 hover:border-border/60 hover:shadow-sm transition-all flex items-center justify-between gap-4"
+                  className="rounded-lg border border-border/40 bg-card px-6 py-4 hover:border-border/60 hover:shadow-sm transition-all flex items-center justify-between gap-4 cursor-pointer group"
+                  onClick={() => router.push(`/posts/${post.id}`)}
                 >
                   {/* Thumbnail */}
                   <div className="flex-shrink-0">
@@ -366,7 +374,7 @@ export default function PostsPage() {
                   </div>
 
                   {/* Right: Status & Menu */}
-                  <div className="flex items-center gap-4 flex-shrink-0 ml-auto">
+                  <div className="flex items-center gap-4 flex-shrink-0 ml-auto" onClick={(e) => e.stopPropagation()}>
                     <span className={cn("text-xs font-medium px-2 py-1 rounded", STATUS_CONFIG[post.status]?.className ?? "bg-slate-500/10 text-slate-700 dark:text-slate-400")}>
                       {STATUS_CONFIG[post.status]?.label ?? post.status}
                     </span>

@@ -25,10 +25,10 @@ function isVideoUrl(url: string): boolean {
 function PostThumbnail({ urls, className }: { urls: string[]; className?: string }) {
   const [error, setError] = useState(false);
   const url = urls[0];
-  const isVideo = isVideoUrl(url);
+  const isVideo = url ? isVideoUrl(url) : false;
   const count = urls.length;
 
-  if (error) {
+  if (!url || error) {
     return (
       <div className={cn("flex items-center justify-center bg-muted/40 rounded-xl", className)}>
         <ImageIcon className="h-5 w-5 text-muted-foreground/40" />
@@ -64,6 +64,7 @@ function PostThumbnail({ urls, className }: { urls: string[]; className?: string
     </div>
   );
 }
+
 
 const STATUS_CONFIG: Record<string, { label: string; className: string; dot: string }> = {
   scheduled:        { label: "Scheduled",   className: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20",   dot: "bg-blue-500" },
@@ -323,7 +324,7 @@ export default function DashboardPage() {
               return (
                 <Link
                   key={post.id}
-                  href={`/create?edit=${post.id}`}
+                  href={`/posts/${post.id}`}
                   className="group flex items-center gap-4 rounded-xl border border-border/50 bg-card/60 px-4 py-3.5 hover:bg-card hover:border-border/80 hover:shadow-sm transition-all duration-200"
                 >
                   {/* Thumbnail or platform icon */}

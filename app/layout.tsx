@@ -44,7 +44,7 @@ export const metadata: Metadata = {
     siteName: "Onelinker",
     images: [
       {
-        url: "/og-image.png",
+        url: "/opengraph-image",
         width: 1200,
         height: 630,
         alt: "Onelinker — Social Media Scheduling",
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Onelinker — Schedule Smarter. Grow Faster.",
     description: "AI-powered social media scheduling for creators and agencies.",
-    images: ["/og-image.png"],
+    images: ["/opengraph-image"],
     creator: "@onelinker_ai",
   },
   robots: {

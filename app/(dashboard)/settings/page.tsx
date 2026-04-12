@@ -416,7 +416,7 @@ export default function SettingsPage() {
       setShowTransferDialog(false);
       setTransferEmail("");
       await refreshWorkspace();
-      fetchMembers();
+      fetchMembersAndInvites();
     } catch {
       toast.error("Transfer failed");
     } finally {

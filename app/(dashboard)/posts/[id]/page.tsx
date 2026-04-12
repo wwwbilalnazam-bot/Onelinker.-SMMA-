@@ -27,6 +27,8 @@ import {
   Instagram,
   Facebook,
   Youtube,
+  CornerDownRight,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -89,8 +91,12 @@ export default function PostDetailsPage() {
   const supabase = createClient();
 
   const [post, setPost] = useState<any>(null);
+  const [comments, setComments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [replyId, setReplyId] = useState<string | null>(null);
+  const [replyContent, setReplyContent] = useState('');
+  const [isReplying, setIsReplying] = useState(false);
 
   const fetchPost = useCallback(async () => {
     if (!workspace?.id) return;
@@ -109,8 +115,27 @@ export default function PostDetailsPage() {
     }
 
     setPost(data);
+
+    // Fetch comments for this post
+    try {
+      const { data: commentsData, error: commentsError } = await supabase
+        .from("inbox_messages")
+        .select("id, platform, author_name, author_avatar, content, received_at, status, reply_text, replied_at, media_urls, attachments, reply_count")
+        .eq("workspace_id", workspace.id)
+        .eq("post_id", id)
+        .neq("status", "archived")
+        .order("received_at", { ascending: false });
+
+      if (commentsError) {
+        console.warn("[Post Details] Comments fetch error:", commentsError);
+      }
+      setComments(commentsData || []);
+    } catch (err) {
+      console.error("[Post Details] Comments fetch exception:", err);
+      setComments([]);
+    }
     setLoading(false);
-  }, [id, router, supabase]);
+  }, [id, router, supabase, workspace?.id]);
 
   useEffect(() => {
     if (workspace?.id) fetchPost();
@@ -127,6 +152,42 @@ export default function PostDetailsPage() {
     }
     toast.success("Post deleted");
     router.push("/posts");
+  }
+
+  async function handleReply(messageId: string) {
+    if (!replyContent.trim()) return;
+
+    try {
+      setIsReplying(true);
+      const response = await fetch(`/api/inbox/reply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messageId, table: 'inbox_messages', content: replyContent.trim() }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to send reply');
+      }
+
+      // Optimistically update local state
+      setComments((prev) =>
+        prev.map((c) =>
+          c.id === messageId
+            ? { ...c, status: 'replied', reply_text: replyContent.trim(), replied_at: new Date().toISOString() }
+            : c
+        )
+      );
+
+      toast.success('Reply sent successfully!');
+      setReplyId(null);
+      setReplyContent('');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to send reply');
+      console.error('[reply] Error:', err);
+    } finally {
+      setIsReplying(false);
+    }
   }
 
   if (loading) {
@@ -283,6 +344,236 @@ export default function PostDetailsPage() {
                       </div>
                     );
                   })}
+                </div>
+              </div>
+            )}
+
+            {/* Comments Section */}
+            {!loading && (
+              <div className="border-t border-border/40 bg-muted/10 p-6 sm:p-8">
+                <div className="space-y-6">
+                  <div>
+                    <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-1">Platform Comments</h2>
+                    <p className="text-xs text-muted-foreground">{comments.length} comment{comments.length !== 1 ? 's' : ''}</p>
+                  </div>
+
+                  <div className="space-y-4">
+                    {comments.length === 0 ? (
+                      <div className="py-8 text-center">
+                        <MessageSquare className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" />
+                        <p className="text-sm text-muted-foreground">No comments yet</p>
+                        <p className="text-xs text-muted-foreground/60 mt-1">Comments from your posts will appear here</p>
+                      </div>
+                    ) : (
+                      <>
+                        {comments.map((comment) => {
+                          const platformIcon = (() => {
+                            const platform = comment.platform?.toLowerCase();
+                            if (platform === 'facebook') return <Facebook className="h-4 w-4 text-blue-600" />;
+                            if (platform === 'instagram') return <Instagram className="h-4 w-4 text-pink-600" />;
+                            if (platform === 'youtube') return <Youtube className="h-4 w-4 text-red-600" />;
+                            if (platform === 'twitter') return <Twitter className="h-4 w-4 text-blue-400" />;
+                            if (platform === 'linkedin') return <Linkedin className="h-4 w-4 text-blue-700" />;
+                            return <Globe className="h-4 w-4 text-muted-foreground" />;
+                          })();
+
+                          const date = new Date(comment.received_at);
+                          const timeStr = date.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+                          return (
+                            <div key={comment.id} className="p-4 rounded-xl bg-card border border-border/30 space-y-3">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex items-start gap-3 flex-1">
+                                  <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0 text-xs font-bold">
+                                    {(comment.author_name || 'U')[0].toUpperCase()}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <p className="font-medium text-sm truncate">{comment.author_name || 'Unknown'}</p>
+                                      {platformIcon}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">{timeStr}</p>
+                                  </div>
+                                </div>
+                                {comment.status === 'unread' && (
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-1 text-[10px] font-bold text-blue-600 dark:text-blue-400 shrink-0">
+                                    New
+                                  </span>
+                                )}
+                              </div>
+                              {/* Comment Content with Emojis, Links & Formatting */}
+                              {comment.content && (
+                                <div className="text-sm text-foreground/90 break-words whitespace-pre-wrap">
+                                  {(() => {
+                                    // Simple URL regex to find links in text
+                                    const urlRegex = /(https?:\/\/[^\s]+)/g;
+                                    const parts = comment.content.split(urlRegex);
+
+                                    return parts.map((part, idx) => {
+                                      if (urlRegex.test(part)) {
+                                        return (
+                                          <a
+                                            key={idx}
+                                            href={part}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-primary hover:underline break-all"
+                                            title={part}
+                                          >
+                                            {part.length > 50 ? part.substring(0, 50) + '...' : part}
+                                          </a>
+                                        );
+                                      }
+                                      return part;
+                                    });
+                                  })()}
+                                </div>
+                              )}
+
+                              {/* Media/Images from Comment */}
+                              {comment.media_urls && comment.media_urls.length > 0 && (
+                                <div className="grid grid-cols-2 gap-2 mt-3">
+                                  {comment.media_urls.map((url, idx) => {
+                                    const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+                                    const isVideo = /\.(mp4|mov|webm|avi)$/i.test(url);
+
+                                    return (
+                                      <div key={idx} className="relative group">
+                                        {isImage && (
+                                          <a href={url} target="_blank" rel="noopener noreferrer" className="block">
+                                            <img
+                                              src={url}
+                                              alt="Comment media"
+                                              className="rounded-lg w-full h-auto max-h-48 object-cover hover:opacity-80 transition-opacity cursor-pointer"
+                                            />
+                                          </a>
+                                        )}
+                                        {isVideo && (
+                                          <a href={url} target="_blank" rel="noopener noreferrer" className="block relative">
+                                            <video
+                                              src={url}
+                                              className="rounded-lg w-full h-auto max-h-48 object-cover"
+                                              controls
+                                            />
+                                          </a>
+                                        )}
+                                        {!isImage && !isVideo && (
+                                          <a href={url} target="_blank" rel="noopener noreferrer" className="block">
+                                            <div className="rounded-lg bg-muted/50 border border-border/50 p-3 text-xs text-foreground/70 hover:bg-muted transition-colors">
+                                              <span className="truncate">{url.split('/').pop() || 'Attachment'}</span>
+                                            </div>
+                                          </a>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+
+                              {/* Structured Attachments */}
+                              {comment.attachments && Object.keys(comment.attachments).length > 0 && (
+                                <div className="mt-3 space-y-2">
+                                  {Object.entries(comment.attachments).map(([key, attachment]: [string, any]) => (
+                                    <div key={key} className="rounded-lg bg-muted/30 border border-border/40 p-3">
+                                      {attachment.type === 'image' && attachment.url && (
+                                        <a href={attachment.url} target="_blank" rel="noopener noreferrer">
+                                          <img src={attachment.url} alt={attachment.title || 'Attachment'} className="rounded w-full max-h-32 object-cover" />
+                                        </a>
+                                      )}
+                                      {attachment.title && (
+                                        <p className="text-xs font-medium text-foreground mt-2">{attachment.title}</p>
+                                      )}
+                                      {attachment.description && (
+                                        <p className="text-xs text-muted-foreground mt-1">{attachment.description}</p>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Existing Reply Display */}
+                              {comment.reply_text && (
+                                <div className="mt-3 pl-4 border-l-2 border-green-200 dark:border-green-900 space-y-1 bg-green-50/50 dark:bg-green-950/20 p-2 rounded">
+                                  <div className="flex items-center gap-1.5 text-[10px] font-medium text-green-700 dark:text-green-400 uppercase tracking-wider">
+                                    <CornerDownRight className="h-3 w-3" />
+                                    Your Reply
+                                  </div>
+                                  <p className="text-foreground/80 text-sm">
+                                    "{comment.reply_text}"
+                                  </p>
+                                  {comment.replied_at && (
+                                    <p className="text-[11px] text-muted-foreground/60 mt-1">
+                                      {new Date(comment.replied_at).toLocaleString()}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Reply Button */}
+                              <div className="flex gap-2 pt-2">
+                                <Button
+                                  onClick={() => {
+                                    if (replyId === comment.id) {
+                                      setReplyId(null);
+                                    } else {
+                                      setReplyId(comment.id);
+                                      setReplyContent('');
+                                    }
+                                  }}
+                                  variant="ghost"
+                                  size="sm"
+                                  className="gap-1"
+                                >
+                                  <CornerDownRight className="h-3 w-3" />
+                                  Reply
+                                </Button>
+                              </div>
+
+                              {/* Inline Reply Form */}
+                              {replyId === comment.id && (
+                                <div className="mt-4 pt-3 border-t border-border/30">
+                                  <div className="flex gap-3 items-start">
+                                    <CornerDownRight className="h-4 w-4 text-muted-foreground/50 mt-2 flex-shrink-0" />
+                                    <div className="flex-1 min-w-0">
+                                      <textarea
+                                        autoFocus
+                                        value={replyContent}
+                                        onChange={(e) => setReplyContent(e.target.value)}
+                                        placeholder={`Reply to ${comment.author_name}...`}
+                                        className="w-full px-3 py-2 text-sm border border-border/50 rounded-lg bg-muted/30 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+                                        rows={3}
+                                      />
+                                      <div className="flex justify-end gap-2 mt-2">
+                                        <Button
+                                          onClick={() => {
+                                            setReplyId(null);
+                                            setReplyContent('');
+                                          }}
+                                          variant="outline"
+                                          size="sm"
+                                        >
+                                          Cancel
+                                        </Button>
+                                        <Button
+                                          onClick={() => handleReply(comment.id)}
+                                          disabled={!replyContent.trim() || isReplying}
+                                          size="sm"
+                                          className="gap-1.5"
+                                        >
+                                          {isReplying && <RefreshCw className="h-3 w-3 animate-spin" />}
+                                          Send Reply
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

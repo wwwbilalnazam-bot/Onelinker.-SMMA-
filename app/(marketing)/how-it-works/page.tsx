@@ -297,11 +297,11 @@ export default function HowItWorksPage() {
             <div
               className={cn(
                 "grid lg:grid-cols-2 gap-10 lg:gap-16 items-center",
-                isEven && "lg:direction-rtl"
+                isEven && "lg:flex-row-reverse"
               )}
             >
               {/* Text side */}
-              <div className={cn(isEven && "lg:order-2", "lg:direction-ltr")}>
+              <div className={cn(isEven && "lg:order-2")}>
                 <div className="flex items-center gap-3 mb-4">
                   <div className={cn("flex h-10 w-10 items-center justify-center rounded-xl", step.bg)}>
                     <step.icon className={cn("h-5 w-5", step.color)} />

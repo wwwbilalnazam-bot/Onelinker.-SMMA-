@@ -34,9 +34,7 @@ function LoginContent() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [isFacebookLoading, setIsFacebookLoading] = useState(false);
-  const [isMagicLinkLoading, setIsMagicLinkLoading] = useState(false);
-  const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   const supabase = createClient();
 
@@ -68,9 +66,15 @@ function LoginContent() {
       return;
     }
 
+    // Set redirecting state to prevent re-submission and show loading
+    setIsRedirecting(true);
     toast.success("Welcome back!");
-    router.push(nextUrl);
-    router.refresh();
+
+    // Redirect after a brief delay to let toast show
+    setTimeout(() => {
+      router.push(nextUrl);
+      router.refresh();
+    }, 300);
   }
 
   // ── Google OAuth ────────────────────────────────────────────
@@ -91,258 +95,191 @@ function LoginContent() {
     }
   }
 
-  // ── Meta (Facebook) OAuth ───────────────────────────────────
 
-  async function signInWithMeta() {
-    setIsFacebookLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "facebook",
-      options: {
-        redirectTo: `${window.location.origin}/auth/meta/callback?next=${encodeURIComponent(nextUrl)}&platform=facebook`,
-      },
-    });
-
-    if (error) {
-      toast.error("Failed to sign in with Facebook. Please try again.");
-      setIsFacebookLoading(false);
-    }
-  }
-
-  // ── Magic link ──────────────────────────────────────────────
-
-  async function sendMagicLink() {
-    const email = getValues("email");
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      toast.error("Enter your email address first, then click magic link.");
-      return;
-    }
-
-    setIsMagicLinkLoading(true);
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(nextUrl)}`,
-      },
-    });
-
-    if (error) {
-      toast.error(error.message);
-    } else {
-      setMagicLinkSent(true);
-      toast.success("Magic link sent! Check your inbox.");
-    }
-    setIsMagicLinkLoading(false);
-  }
 
   return (
     <AnimatedSection animation="fade-up" delay={100}>
-    <div className="w-full max-w-[420px] space-y-6">
-      {/* Header */}
-      <div className="space-y-2">
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
-          Welcome back
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Sign in to your account to continue
-        </p>
-      </div>
-
-      {/* Google OAuth */}
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full h-12 gap-3 text-sm font-medium border-border/80 hover:bg-accent/60 rounded-xl transition-all hover:shadow-sm"
-        onClick={signInWithGoogle}
-        disabled={isGoogleLoading || isSubmitting || isFacebookLoading}
-      >
-        {isGoogleLoading ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          <GoogleIcon />
-        )}
-        Continue with Google
-      </Button>
-
-      {/* Meta (Facebook) OAuth */}
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full h-12 gap-3 text-sm font-medium border-border/80 hover:bg-accent/60 rounded-xl transition-all hover:shadow-sm"
-        onClick={signInWithMeta}
-        disabled={isFacebookLoading || isSubmitting || isGoogleLoading}
-      >
-        {isFacebookLoading ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          <FacebookIcon />
-        )}
-        Continue with Facebook
-      </Button>
-
-      {/* Divider */}
-      <div className="relative">
-        <Separator className="bg-border/40" />
-        <span className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-3 text-xs text-muted-foreground/60 uppercase tracking-wider">
-          or sign in with email
-        </span>
-      </div>
-
-      {/* Form */}
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-        {/* Email */}
-        <div className="space-y-2">
-          <Label htmlFor="email" className="text-sm font-medium text-foreground">
-            Email
-          </Label>
-          <div className="relative">
-            <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
-            <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              placeholder="you@example.com"
-              className={cn(
-                "pl-10 h-12 rounded-xl bg-background border-border/60 text-sm focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary/40",
-                errors.email && "border-destructive focus-visible:ring-destructive/20"
-              )}
-              {...register("email")}
-            />
+      <div className="w-full max-w-[440px] space-y-8 bg-card/10 p-2 rounded-[2.5rem]">
+        <div className="bg-background/40 backdrop-blur-2xl border border-border/10 rounded-[2.2rem] p-8 sm:p-10 shadow-2xl space-y-8">
+          {/* Header */}
+          <div className="space-y-3">
+            <h1 className="text-3xl sm:text-4xl font-medium text-foreground tracking-tight font-heading">
+              Welcome back
+            </h1>
+            <p className="text-base text-muted-foreground font-medium">
+              Sign in to your account
+            </p>
           </div>
-          {errors.email && (
-            <p className="text-xs text-destructive">{errors.email.message}</p>
-          )}
-        </div>
 
-        {/* Password */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="password" className="text-sm font-medium text-foreground">
-              Password
-            </Label>
-            <Link
-              href="/forgot-password"
-              className="text-xs text-primary/80 hover:text-primary transition-colors font-medium"
-            >
-              Forgot password?
-            </Link>
-          </div>
-          <div className="relative">
-            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
-            <Input
-              id="password"
-              type={showPassword ? "text" : "password"}
-              autoComplete="current-password"
-              placeholder="Enter your password"
-              className={cn(
-                "pl-10 pr-11 h-12 rounded-xl bg-background border-border/60 text-sm focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary/40",
-                errors.password && "border-destructive focus-visible:ring-destructive/20"
-              )}
-              {...register("password")}
-            />
-            <button
+          {/* Social Auth Grid */}
+          <div className="w-full">
+            <Button
               type="button"
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground transition-colors"
-              onClick={() => setShowPassword(!showPassword)}
-              tabIndex={-1}
+              variant="outline"
+              className="w-full h-12 gap-3 text-sm font-bold border-border/40 hover:bg-accent/40 rounded-2xl transition-all hover:shadow-lg hover:shadow-primary/5 active:scale-[0.98]"
+              onClick={signInWithGoogle}
+              disabled={isGoogleLoading || isSubmitting || isRedirecting}
             >
-              {showPassword ? (
-                <EyeOff className="h-4 w-4" />
+              {isGoogleLoading || isRedirecting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Eye className="h-4 w-4" />
+                <GoogleIcon />
               )}
-            </button>
+              Continue with Google
+            </Button>
           </div>
-          {errors.password && (
-            <p className="text-xs text-destructive">{errors.password.message}</p>
-          )}
-        </div>
 
-        {/* Submit */}
-        <Button
-          type="submit"
-          className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold rounded-xl text-sm shadow-glow-sm hover:shadow-glow transition-all"
-          disabled={isSubmitting || isGoogleLoading}
-        >
-          {isSubmitting ? (
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          ) : null}
-          Sign in
-          <ArrowRight className="h-4 w-4 ml-2" />
-        </Button>
+          {/* Divider */}
+          <div className="flex items-center gap-4">
+            <Separator className="flex-1 bg-border/20" />
+            <span className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-[0.2em]">
+              or continue with
+            </span>
+            <Separator className="flex-1 bg-border/20" />
+          </div>
 
-        {/* Magic link */}
-        <div className={cn(
-          "rounded-xl border border-border/40 p-3 transition-all",
-          magicLinkSent ? "bg-emerald-500/5 border-emerald-500/20" : "bg-muted/20 hover:bg-muted/30"
-        )}>
-          {magicLinkSent ? (
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 shrink-0">
-                <CheckCircle className="h-4 w-4 text-emerald-500" />
+          {/* Form */}
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
+            {/* Email */}
+            <div className="space-y-2.5">
+              <Label htmlFor="email" className="text-sm font-bold text-foreground ml-1">
+                Email Address
+              </Label>
+              <div className="relative group">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="name@company.com"
+                  disabled={isRedirecting}
+                  className={cn(
+                    "pl-11 h-13 rounded-2xl bg-muted/20 border-border/30 text-sm font-medium focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:border-primary/30 transition-all",
+                    errors.email && "border-destructive/50 focus-visible:ring-destructive/10",
+                    isRedirecting && "opacity-50 cursor-not-allowed"
+                  )}
+                  {...register("email")}
+                />
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-emerald-600">Magic link sent!</p>
-                <p className="text-[11px] text-muted-foreground">Check your inbox and click the link to sign in.</p>
-              </div>
+              {errors.email && (
+                <p className="text-xs font-semibold text-destructive/80 ml-1">{errors.email.message}</p>
+              )}
             </div>
-          ) : (
-            <button
-              type="button"
-              className="w-full flex items-center gap-2.5"
-              onClick={sendMagicLink}
-              disabled={isMagicLinkLoading || isSubmitting}
+
+            {/* Password */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between ml-1">
+                <Label htmlFor="password" className="text-sm font-bold text-foreground">
+                  Password
+                </Label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-primary font-bold hover:underline underline-offset-4 transition-all"
+                >
+                  Forgot?
+                </Link>
+              </div>
+              <div className="relative group">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  placeholder="••••••••"
+                  disabled={isRedirecting}
+                  className={cn(
+                    "pl-11 pr-12 h-13 rounded-2xl bg-muted/20 border-border/30 text-sm font-medium focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:border-primary/30 transition-all",
+                    errors.password && "border-destructive/50 focus-visible:ring-destructive/10",
+                    isRedirecting && "opacity-50 cursor-not-allowed"
+                  )}
+                  {...register("password")}
+                />
+                <button
+                  type="button"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground/40 hover:text-foreground transition-colors"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+              {errors.password && (
+                <p className="text-xs font-semibold text-destructive/80 ml-1">{errors.password.message}</p>
+              )}
+            </div>
+
+            {/* Submit */}
+            <Button
+              type="submit"
+              className="w-full h-13 bg-foreground text-background hover:bg-foreground/90 font-bold rounded-2xl text-base shadow-xl transition-all active:scale-[0.98] group"
+              disabled={isSubmitting || isGoogleLoading || isRedirecting}
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/5 shrink-0">
-                {isMagicLinkLoading ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-                ) : (
-                  <Zap className="h-3.5 w-3.5 text-primary" />
-                )}
-              </div>
-              <div className="flex-1 text-left min-w-0">
-                <p className="text-xs font-medium text-foreground">Send a magic link</p>
-                <p className="text-[11px] text-muted-foreground">Sign in without a password via email</p>
-              </div>
-              <ArrowRight className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
-            </button>
-          )}
+              {isSubmitting || isRedirecting ? (
+                <Loader2 className="h-5 w-5 animate-spin mr-2" />
+              ) : (
+                <span className="flex items-center gap-2">
+                  Sign In <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+                </span>
+              )}
+            </Button>
+
+          </form>
+
+          {/* Footer link */}
+          <div className="text-center pt-2">
+            <p className="text-sm font-medium text-muted-foreground">
+              New to Onelinker?{" "}
+              <Link
+                href="/signup"
+                className="font-bold text-primary hover:underline underline-offset-4"
+              >
+                Create free account
+              </Link>
+            </p>
+          </div>
+
+          {/* Trust indicators */}
+          <div className="flex items-center justify-center gap-6 pt-2">
+            {[
+              { icon: Shield, text: "Secure" },
+              { icon: Zap, text: "Fast" },
+            ].map((item) => (
+              <span key={item.text} className="flex items-center gap-2 text-[10px] font-black text-muted-foreground/30 uppercase tracking-[0.2em]">
+                <item.icon className="h-3 w-3" />
+                {item.text}
+              </span>
+            ))}
+          </div>
         </div>
-      </form>
-
-      {/* Divider */}
-      <div className="h-px bg-border/30" />
-
-      {/* Sign up link */}
-      <p className="text-center text-sm text-muted-foreground">
-        Don&apos;t have an account?{" "}
-        <Link
-          href="/signup"
-          className="font-semibold text-primary hover:underline transition-colors"
-        >
-          Create free account
-        </Link>
-      </p>
-
-      {/* Trust indicators */}
-      <div className="flex items-center justify-center gap-4">
-        {[
-          { icon: Shield, text: "Encrypted" },
-          { icon: Zap, text: "99.9% uptime" },
-        ].map((item) => (
-          <span key={item.text} className="flex items-center gap-1 text-[10px] text-muted-foreground/40">
-            <item.icon className="h-3 w-3" />
-            {item.text}
-          </span>
-        ))}
       </div>
-    </div>
     </AnimatedSection>
+  );
+}
+
+function LoginSkeleton() {
+  return (
+    <div className="w-full max-w-[440px] space-y-8 animate-pulse p-10">
+      <div className="space-y-4">
+        <div className="h-8 w-40 bg-muted/40 rounded-xl" />
+        <div className="h-4 w-60 bg-muted/20 rounded-lg" />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="h-12 bg-muted/30 rounded-2xl" />
+        <div className="h-12 bg-muted/30 rounded-2xl" />
+      </div>
+      <div className="h-13 bg-muted/10 rounded-2xl border border-border/10" />
+      <div className="h-13 bg-muted/10 rounded-2xl border border-border/10" />
+      <div className="h-13 bg-foreground/10 rounded-2xl shadow-xl" />
+    </div>
   );
 }
 
 export default function LoginPage() {
   return (
-    <Suspense>
+    <Suspense fallback={<LoginSkeleton />}>
       <LoginContent />
     </Suspense>
   );
@@ -371,13 +308,3 @@ function GoogleIcon() {
   );
 }
 
-function FacebookIcon() {
-  return (
-    <svg className="h-5 w-5" viewBox="0 0 24 24">
-      <path
-        d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"
-        fill="#1877F2"
-      />
-    </svg>
-  );
-}

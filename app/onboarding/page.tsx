@@ -67,10 +67,10 @@ export default async function OnboardingPage() {
       const emailPrefix = user.email?.split("@")[0] ?? "user";
       const baseSlug = emailPrefix.toLowerCase().replace(/[^a-z0-9]/g, "-");
 
-      // Make slug unique
+      // Make slug unique with a maximum of 20 attempts
       let slug = baseSlug;
       let attempt = 0;
-      while (true) {
+      while (attempt <= 20) {
         const { data: existing } = await service
           .from("workspaces")
           .select("id")
@@ -79,6 +79,11 @@ export default async function OnboardingPage() {
         if (!existing) break;
         attempt += 1;
         slug = `${baseSlug}-${attempt}`;
+      }
+
+      // Fallback to random ID if we've exhausted slug attempts
+      if (attempt > 20) {
+        slug = `${baseSlug}-${crypto.randomUUID().slice(0, 8)}`;
       }
 
       const displayName = profile?.full_name ?? emailPrefix;

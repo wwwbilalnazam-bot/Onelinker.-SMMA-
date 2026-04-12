@@ -80,7 +80,7 @@ export function StaggerChildren({
   animation = "fade-up",
   duration = 600,
 }: {
-  children: React.ReactNode[];
+  children: React.ReactNode;
   className?: string;
   staggerMs?: number;
   animation?: AnimationType;
@@ -89,9 +89,12 @@ export function StaggerChildren({
   const [ref, isVisible] = useScrollReveal<HTMLDivElement>();
   const styles = animationStyles[animation];
 
+  // Handle both array and single children
+  const childrenArray = Array.isArray(children) ? children : [children];
+
   return (
     <div ref={ref} className={className}>
-      {children.map((child, i) => (
+      {childrenArray.map((child, i) => (
         <div
           key={i}
           className={cn(

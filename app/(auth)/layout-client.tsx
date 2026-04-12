@@ -9,7 +9,6 @@ import {
   Sparkles, Globe, Zap,
   Twitter, Instagram, Linkedin, Youtube, Facebook,
 } from "lucide-react";
-import { ForceLightTheme } from "@/components/providers/ForceLightTheme";
 
 /* ── Testimonials ──────────────────────────────────────────── */
 
@@ -140,16 +139,18 @@ export function AuthLayoutClient({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-background flex">
-      <ForceLightTheme />
-
+    <div className="min-h-screen bg-background flex text-foreground selection:bg-primary/30">
       {/* ── Left panel (branding) — hidden on mobile ── */}
-      <div className="hidden lg:flex lg:w-[480px] xl:w-[520px] shrink-0 relative overflow-hidden">
-        {/* Background layers */}
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-[#0f0a2e] to-gray-900" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(124,92,255,0.15),transparent_60%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(99,102,241,0.1),transparent_60%)]" />
-        <div className="absolute bottom-0 left-0 w-[400px] h-[300px] bg-primary/5 rounded-full blur-[100px]" />
+      <div className="hidden lg:flex lg:w-[480px] xl:w-[540px] shrink-0 relative overflow-hidden border-r border-border/10">
+        {/* Background layers — Matching landing page aesthetics */}
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-900 via-violet-800 to-purple-900" />
+        
+        {/* Animated Background Gradients */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-primary/15 rounded-full blur-[120px] animate-pulse" />
+          <div className="absolute bottom-[0%] right-[-5%] w-[40%] h-[40%] bg-violet-500/10 rounded-full blur-[100px] animate-pulse delay-700" />
+          <div className="absolute top-[20%] left-[20%] w-[30%] h-[30%] bg-sky-500/5 rounded-full blur-[80px]" />
+        </div>
 
         {/* Subtle grid pattern */}
         <div
@@ -163,59 +164,61 @@ export function AuthLayoutClient({
         <FloatingIcons />
 
         {/* Content */}
-        <div className="relative z-10 flex flex-col justify-between w-full p-10 xl:p-12">
+        <div className="relative z-10 flex flex-col justify-between w-full p-10 xl:p-14">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <Image src="/logo.png" alt="Onelinker" width={36} height={36} className="rounded-xl shadow-lg transition-transform group-hover:scale-105" />
-            <span className="text-xl font-bold text-white tracking-tight">Onelinker</span>
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="h-10 w-10 relative">
+              <Image src="/logo.png" alt="Onelinker" fill className="rounded-xl shadow-2xl transition-transform group-hover:scale-110 duration-500" />
+            </div>
+            <span className="text-2xl font-bold text-white tracking-tight font-heading">Onelinker</span>
           </Link>
 
           {/* Middle — headline + highlights */}
-          <div className="space-y-8">
+          <div className="space-y-10">
             <div>
-              <h2 className="text-2xl xl:text-3xl font-extrabold text-white leading-tight tracking-tight">
-                Schedule smarter.
+              <h2 className="text-3xl xl:text-4xl font-medium text-white leading-[1.1] tracking-tight font-heading">
+                Post Everywhere.
                 <br />
-                <span className="bg-gradient-to-r from-violet-400 to-sky-400 bg-clip-text text-transparent">
-                  Grow faster.
+                <span className="bg-gradient-to-r from-primary via-violet-400 to-sky-400 bg-clip-text text-transparent">
+                  Automate Everything.
                 </span>
               </h2>
-              <p className="text-sm text-white/50 mt-3 max-w-sm leading-relaxed">
-                Join thousands of creators and agencies managing their social media from one powerful dashboard.
+              <p className="text-base text-white/50 mt-4 max-w-sm leading-relaxed font-medium">
+                The all-in-one platform for creators and agencies. Schedule, publish, and track 10+ social channels.
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 gap-3">
               {HIGHLIGHTS.map((h) => (
                 <div
                   key={h.text}
-                  className="flex items-center gap-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] px-3.5 py-3 hover:bg-white/[0.06] transition-colors"
+                  className="flex items-center gap-3 rounded-2xl bg-white/[0.04] border border-white/[0.06] px-4 py-3.5 hover:bg-white/[0.08] hover:border-white/[0.1] transition-all duration-300 group/item"
                 >
-                  <div className={cn("flex h-7 w-7 items-center justify-center rounded-lg", h.bg)}>
-                    <h.icon className={cn("h-3.5 w-3.5", h.color)} />
+                  <div className={cn("flex h-8 w-8 items-center justify-center rounded-xl shadow-inner group-hover/item:scale-110 transition-transform", h.bg)}>
+                    <h.icon className={cn("h-4 w-4", h.color)} />
                   </div>
-                  <span className="text-xs text-white/70 font-medium">{h.text}</span>
+                  <span className="text-xs text-white/70 font-bold whitespace-nowrap">{h.text}</span>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Bottom — testimonial + trust badges */}
-          <div className="space-y-6">
+          <div className="space-y-8">
             <RotatingTestimonial />
 
             {/* Trust badges */}
-            <div className="flex items-center gap-4 text-[11px] text-white/30">
-              <span className="flex items-center gap-1.5">
-                <Shield className="h-3 w-3" /> SOC 2 Compliant
+            <div className="flex items-center gap-5 text-[10px] font-black text-white/30 uppercase tracking-widest">
+              <span className="flex items-center gap-2">
+                <Shield className="h-3 w-3" /> SOC 2
               </span>
               <span className="h-3 w-px bg-white/10" />
-              <span className="flex items-center gap-1.5">
-                <Zap className="h-3 w-3" /> 99.9% Uptime
+              <span className="flex items-center gap-2">
+                <Zap className="h-3 w-3" /> 99.9%
               </span>
               <span className="h-3 w-px bg-white/10" />
-              <span className="flex items-center gap-1.5">
-                <Users className="h-3 w-3" /> 5,000+ Creators
+              <span className="flex items-center gap-2">
+                <Users className="h-3 w-3" /> 5K+
               </span>
             </div>
           </div>
@@ -223,17 +226,20 @@ export function AuthLayoutClient({
       </div>
 
       {/* ── Right panel (form area) ── */}
-      <div className="flex-1 flex flex-col min-h-screen">
+      <div className="flex-1 flex flex-col min-h-screen relative overflow-hidden">
+        {/* Subtle background glow for dark mode on right panel */}
+        <div className="absolute top-0 right-0 w-[30%] h-[30%] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
+        
         {/* Mobile header */}
-        <header className="lg:hidden flex items-center justify-between px-5 py-4 border-b border-border/30">
-          <Link href="/" className="flex items-center gap-2 group">
-            <Image src="/logo.png" alt="Onelinker" width={32} height={32} className="rounded-lg" />
-            <span className="text-lg font-bold text-foreground tracking-tight">Onelinker</span>
+        <header className="lg:hidden flex items-center justify-between px-6 py-5 border-b border-border/10 bg-background/80 backdrop-blur-xl z-20">
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <Image src="/logo.png" alt="Onelinker" width={32} height={32} className="rounded-lg shadow-lg" />
+            <span className="text-xl font-bold text-foreground tracking-tight font-heading">Onelinker</span>
           </Link>
 
           <Link
             href="/"
-            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground transition-all active:scale-95"
           >
             <ArrowLeft className="h-4 w-4" />
             Back
@@ -241,35 +247,35 @@ export function AuthLayoutClient({
         </header>
 
         {/* Desktop top-right nav */}
-        <div className="hidden lg:flex items-center justify-end px-8 py-5">
+        <div className="hidden lg:flex items-center justify-end px-10 py-6 z-20">
           <Link
             href="/"
-            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground transition-all hover:-translate-x-1"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
             Back to home
           </Link>
         </div>
 
         {/* Form content — centered */}
-        <main className="flex-1 flex items-center justify-center px-5 py-8 lg:py-0">
+        <main className="flex-1 flex items-center justify-center px-6 py-10 lg:py-0 relative z-10">
           {children}
         </main>
 
         {/* Footer */}
-        <footer className="px-5 pb-5 pt-2 text-center text-xs text-muted-foreground">
-          <p>
-            By continuing, you agree to our{" "}
-            <Link href="/terms" className="underline hover:text-foreground transition-colors">
+        <footer className="px-6 pb-8 pt-4 text-center text-[11px] font-medium text-muted-foreground/60 relative z-10">
+          <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mb-2">
+            <Link href="/terms" className="hover:text-foreground transition-colors">
               Terms of Service
-            </Link>{" "}
-            and{" "}
-            <Link href="/privacy" className="underline hover:text-foreground transition-colors">
+            </Link>
+            <Link href="/privacy" className="hover:text-foreground transition-colors">
               Privacy Policy
             </Link>
-            .
-          </p>
-          <p className="mt-1 text-muted-foreground/60">&copy; 2026 Onelinker.ai</p>
+            <Link href="/contact" className="hover:text-foreground transition-colors">
+              Support
+            </Link>
+          </div>
+          <p className="text-[10px] tracking-wider uppercase opacity-40">&copy; 2026 Onelinker AI &middot; Made for Creators</p>
         </footer>
       </div>
     </div>

@@ -180,6 +180,7 @@ export default function AccountsPage() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState<string | null>(null);
   const [syncingAll, setSyncingAll] = useState(false);
+  const [syncingFollowers, setSyncingFollowers] = useState(false);
   const [showConnect, setShowConnect] = useState(false);
   const [connecting, setConnecting] = useState<string | null>(null);
 
@@ -224,8 +225,33 @@ export default function AccountsPage() {
     }
   }, [workspace?.id, syncingAll, fetchAccounts]);
 
+  const syncFollowers = useCallback(async () => {
+    if (!workspace?.id || syncingFollowers) return;
+    setSyncingFollowers(true);
+    try {
+      const res = await fetch("/api/accounts/sync-followers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ workspaceId: workspace.id }),
+      });
+      const json = await res.json() as { data?: { synced: number }; error?: string };
+      if (json.data?.synced) {
+        toast.success(`Updated ${json.data.synced} account${json.data.synced !== 1 ? 's' : ''}`);
+        await fetchAccounts();
+      } else if (json.error) {
+        toast.error(json.error);
+      }
+    } catch (err) {
+      toast.error("Failed to sync followers");
+    } finally {
+      setSyncingFollowers(false);
+    }
+  }, [workspace?.id, syncingFollowers, fetchAccounts]);
+
   useEffect(() => {
-    if (workspace?.id) syncAllAccounts();
+    if (workspace?.id) {
+      syncAllAccounts();
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspace?.id]);
 

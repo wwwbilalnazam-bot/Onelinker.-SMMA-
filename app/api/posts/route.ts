@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
       accountIds?: string[];          // local social_accounts.id UUIDs
       content?: string;
       channelContent?: Record<string, string>; // platform → content (per-channel mode)
+      accountContent?: Record<string, string>; // account UUID → content (per-account mode)
       scheduleMode?: "now" | "schedule" | "draft";
       scheduledAt?: string;           // "YYYY-MM-DD"
       scheduledTime?: string;         // "HH:MM"
@@ -51,6 +52,7 @@ export async function POST(request: NextRequest) {
       accountIds,
       content = "",
       channelContent,
+      accountContent,
       scheduleMode = "now",
       scheduledAt,
       scheduledTime,
@@ -123,6 +125,7 @@ export async function POST(request: NextRequest) {
         status: "draft" as const,
         first_comment: firstComment || null,
         channel_content: channelContent || null,
+        account_content: accountContent || null,
         title: youtubeTitle || null,
         options: (youtubeConfig || thumbnail) ? { youtubeConfig, thumbnail } : null,
       };
@@ -212,6 +215,47 @@ export async function POST(request: NextRequest) {
         });
         results.push(res);
         if (i < segments.length - 1) await new Promise(r => setTimeout(r, 1000));
+      }
+
+      return NextResponse.json({
+        data: { results, status: scheduleMode === "schedule" ? "scheduled" : "published" }
+      });
+    }
+
+    // ── Per-account content logic ──────────────────────────
+    const hasAccountContent = accountContent && Object.keys(accountContent).length > 0;
+
+    if (hasAccountContent && accountContent) {
+      const results: any[] = [];
+
+      for (const account of (accounts ?? [])) {
+        const caption = accountContent[account.id] ?? content;
+        if (!caption.trim() && postFormat !== "story") continue;
+
+        const provider = getProviderForPlatform(account.platform);
+        const res = await provider.createPost({
+          payload: {
+            content: caption,
+            accountIds: [account.username || account.outstand_account_id],
+            mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined,
+            scheduleAt: scheduleAtIso,
+            timezone,
+            firstComment: firstComment || undefined,
+            format: platformFormats?.[account.platform] ?? "post",
+            platforms: [account.platform],
+            title: account.platform === "youtube" ? youtubeTitle : undefined,
+            youtubeConfig: account.platform === "youtube" ? youtubeConfig : undefined,
+            thumbnail,
+          },
+          workspaceId,
+          authorId: user.id,
+          apiKey,
+        });
+        results.push(res);
+        // Small delay between provider calls to avoid rate limiting
+        if (results.length < (accounts ?? []).length) {
+          await new Promise(r => setTimeout(r, 300));
+        }
       }
 
       return NextResponse.json({
@@ -313,12 +357,13 @@ export async function PATCH(request: NextRequest) {
       mediaUrls?: string[];
       firstComment?: string;
       channelContent?: Record<string, string>;
+      accountContent?: Record<string, string>;
       youtubeTitle?: string;
       youtubeConfig?: any;
       thumbnail?: any;
     };
 
-    const { postId, workspaceId, content, accountIds, mediaUrls, firstComment, channelContent, youtubeTitle, youtubeConfig, thumbnail } = body;
+    const { postId, workspaceId, content, accountIds, mediaUrls, firstComment, channelContent, accountContent, youtubeTitle, youtubeConfig, thumbnail } = body;
 
     if (!postId || !workspaceId) {
       return NextResponse.json(
@@ -368,6 +413,7 @@ export async function PATCH(request: NextRequest) {
     if (mediaUrls !== undefined) updateData.media_urls = mediaUrls;
     if (firstComment !== undefined) updateData.first_comment = firstComment || null;
     if (channelContent !== undefined) updateData.channel_content = channelContent || null;
+    if (accountContent !== undefined) updateData.account_content = accountContent || null;
     if (youtubeTitle !== undefined) updateData.title = youtubeTitle || null;
     if (youtubeConfig !== undefined || thumbnail !== undefined) {
       updateData.options = { 

@@ -107,7 +107,7 @@ export default function AboutPage() {
                 the perfect time, and understand what resonates with your audience.
               </p>
               <p className="text-sm text-muted-foreground mt-3 leading-relaxed">
-                Our free tier isn&apos;t a limited trial — it&apos;s a real, usable product with 10 accounts,
+                Our free tier isn&apos;t a limited trial — it&apos;s a real, usable product with 3 social channels,
                 50 posts per month, and access to all platforms. We grow when you grow.
               </p>
             </div>

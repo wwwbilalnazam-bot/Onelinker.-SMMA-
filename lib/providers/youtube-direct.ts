@@ -30,6 +30,7 @@ import {
   deleteYouTubeVideo,
   getYouTubeVideoStatus,
 } from "@/lib/youtube/posts";
+import { fetchYouTubeVideoMetrics } from "@/lib/youtube/analytics";
 import { createServiceClient } from "@/lib/supabase/server";
 import { createClient } from "@/lib/supabase/server";
 
@@ -341,14 +342,39 @@ export class YouTubeDirectProvider implements SocialProvider {
       .eq("outstand_post_id", params.providerPostId);
   }
 
-  // ── Analytics (stub) ───────────────────────────────────
-
   async getPostAnalytics(params: {
     providerPostId: string;
     apiKey?: string | null;
   }): Promise<PostAnalytics> {
-    void params;
-    return { likes: 0, comments: 0, shares: 0, reach: 0, impressions: 0, clicks: 0 };
+    const { providerPostId } = params;
+    const videoId = providerPostId.replace("yt_", "");
+    if (!videoId) return { likes: 0, comments: 0, shares: 0, reach: 0, impressions: 0, clicks: 0 };
+
+    const serviceClient = createServiceClient();
+    const { data: post } = await serviceClient
+      .from("posts")
+      .select("workspace_id, account_ids")
+      .eq("outstand_post_id", providerPostId)
+      .single();
+
+    if (!post || !post.workspace_id || !post.account_ids?.[0]) {
+      return { likes: 0, comments: 0, shares: 0, reach: 0, impressions: 0, clicks: 0 };
+    }
+
+    const accountId = post.account_ids[0];
+    const tokenData = await getYouTubeAccessToken(post.workspace_id, accountId);
+    if (!tokenData) return { likes: 0, comments: 0, shares: 0, reach: 0, impressions: 0, clicks: 0 };
+
+    const stats = await fetchYouTubeVideoMetrics(videoId, tokenData.accessToken);
+
+    return {
+      likes: stats.likes,
+      comments: stats.comments,
+      shares: 0,
+      reach: stats.views, // Use views as reach proxy
+      impressions: stats.views,
+      clicks: 0,
+    };
   }
 
   // ── Webhooks ───────────────────────────────────────────

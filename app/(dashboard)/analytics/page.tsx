@@ -82,87 +82,108 @@ export default function AnalyticsPage() {
   const [topPosts, setTopPosts]           = useState<TopPost[]>([]);
   const [stats, setStats]                 = useState<Stats>({ totalReach: 0, totalEngagement: 0, postsPublished: 0, linkClicks: 0 });
 
-  const fetchAnalytics = useCallback(async () => {
+  const fetchAnalytics = useCallback(async (forceSync = false) => {
     if (!workspace?.id) return;
     setLoading(true);
 
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - DATE_RANGE_DAYS[range]);
-
-    const { data: postsData } = await supabase
-      .from("posts")
-      .select(`
-        id, content, platforms, status, published_at,
-        post_metrics(likes, comments, shares, reach, clicks, platform, recorded_at)
-      `)
-      .eq("workspace_id", workspace.id)
-      .eq("status", PostStatus.Published)
-      .gte("published_at", startDate.toISOString())
-      .order("published_at", { ascending: true });
-
-    if (!postsData) { setLoading(false); return; }
-
-    // Aggregate by date
-    const dateMap: Record<string, MetricPoint> = {};
-    // Aggregate by platform
-    const platformMap: Record<string, { postIds: Set<string>; reach: number; engagement: number }> = {};
-
-    let totalReach = 0, totalEngagement = 0, totalClicks = 0;
-    const topPostsRaw: TopPost[] = [];
-
-    for (const post of postsData) {
-      const metrics = (post.post_metrics as Array<{
-        likes: number; comments: number; shares: number; reach: number;
-        clicks: number; platform: string; recorded_at: string;
-      }>) ?? [];
-
-      let postReach = 0, postLikes = 0, postComments = 0;
-
-      for (const m of metrics) {
-        const dateKey = new Date(m.recorded_at).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-        if (!dateMap[dateKey]) dateMap[dateKey] = { date: dateKey, reach: 0, likes: 0, comments: 0 };
-        dateMap[dateKey].reach    += m.reach;
-        dateMap[dateKey].likes    += m.likes;
-        dateMap[dateKey].comments += m.comments;
-
-        const plt = m.platform || ((post.platforms as string[])?.[0]) || "unknown";
-        if (!platformMap[plt]) platformMap[plt] = { postIds: new Set(), reach: 0, engagement: 0 };
-        platformMap[plt].postIds.add(post.id);
-        platformMap[plt].reach      += m.reach;
-        platformMap[plt].engagement += m.likes + m.comments + m.shares;
-
-        totalReach      += m.reach;
-        totalEngagement += m.likes + m.comments + m.shares;
-        totalClicks     += m.clicks;
-        postReach    += m.reach;
-        postLikes    += m.likes;
-        postComments += m.comments;
-      }
-
-      if (metrics.length > 0) {
-        topPostsRaw.push({
-          id: post.id,
-          content: post.content,
-          platform: ((post.platforms as string[])?.[0]) ?? "unknown",
-          likes: postLikes, comments: postComments,
-          reach: postReach, engagement: postLikes + postComments,
+    try {
+      if (forceSync) {
+        await fetch("/api/analytics/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ workspaceId: workspace.id }),
         });
       }
+
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - DATE_RANGE_DAYS[range]);
+
+      const { data: postsData } = await supabase
+        .from("posts")
+        .select(`
+          id, content, platforms, status, published_at,
+          post_metrics(likes, comments, shares, reach, clicks, platform, recorded_at)
+        `)
+        .eq("workspace_id", workspace.id)
+        .eq("status", PostStatus.Published)
+        .gte("published_at", startDate.toISOString())
+        .order("published_at", { ascending: true });
+
+      if (!postsData) { setLoading(false); return; }
+
+      // Aggregate by date
+      const dateMap: Record<string, MetricPoint> = {};
+      // Aggregate by platform
+      const platformMap: Record<string, { postIds: Set<string>; reach: number; engagement: number }> = {};
+
+      let totalReach = 0, totalEngagement = 0, totalClicks = 0;
+      const topPostsRaw: TopPost[] = [];
+
+      for (const post of postsData) {
+        const metrics = (post.post_metrics as Array<{
+          likes: number; comments: number; shares: number; reach: number;
+          clicks: number; platform: string; recorded_at: string;
+        }>) ?? [];
+
+        let postReach = 0, postLikes = 0, postComments = 0;
+
+        for (const m of metrics) {
+          const dateKey = new Date(m.recorded_at).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+          if (!dateMap[dateKey]) dateMap[dateKey] = { date: dateKey, reach: 0, likes: 0, comments: 0 };
+          dateMap[dateKey].reach    += m.reach;
+          dateMap[dateKey].likes    += m.likes;
+          dateMap[dateKey].comments += m.comments;
+
+          const plt = m.platform || ((post.platforms as string[])?.[0]) || "unknown";
+          if (!platformMap[plt]) platformMap[plt] = { postIds: new Set(), reach: 0, engagement: 0 };
+          platformMap[plt].postIds.add(post.id);
+          platformMap[plt].reach      += m.reach;
+          platformMap[plt].engagement += m.likes + m.comments + m.shares;
+
+          totalReach      += m.reach;
+          totalEngagement += m.likes + m.comments + m.shares;
+          totalClicks     += m.clicks;
+          postReach    += m.reach;
+          postLikes    += m.likes;
+          postComments += m.comments;
+        }
+
+        if (metrics.length > 0) {
+          topPostsRaw.push({
+            id: post.id,
+            content: post.content,
+            platform: ((post.platforms as string[])?.[0]) ?? "unknown",
+            likes: postLikes, comments: postComments,
+            reach: postReach, engagement: postLikes + postComments,
+          });
+        }
+      }
+
+      setEngagementData(Object.values(dateMap));
+      setPlatformData(
+        Object.entries(platformMap).map(([platform, d]) => ({
+          platform: platform.charAt(0).toUpperCase() + platform.slice(1).replace(/_/g, " "),
+          posts: d.postIds.size, reach: d.reach, engagement: d.engagement,
+        }))
+      );
+      setTopPosts(topPostsRaw.sort((a, b) => b.engagement - a.engagement).slice(0, 3));
+      setStats({ totalReach, totalEngagement, postsPublished: postsData.length, linkClicks: totalClicks });
+    } catch (err) {
+      console.error("[analytics] Fetch error:", err);
+    } finally {
+      setLoading(false);
     }
+  }, [workspace?.id, range, supabase]);
 
-    setEngagementData(Object.values(dateMap));
-    setPlatformData(
-      Object.entries(platformMap).map(([platform, d]) => ({
-        platform: platform.charAt(0).toUpperCase() + platform.slice(1).replace(/_/g, " "),
-        posts: d.postIds.size, reach: d.reach, engagement: d.engagement,
-      }))
-    );
-    setTopPosts(topPostsRaw.sort((a, b) => b.engagement - a.engagement).slice(0, 3));
-    setStats({ totalReach, totalEngagement, postsPublished: postsData.length, linkClicks: totalClicks });
-    setLoading(false);
-  }, [workspace?.id, range]);
+  useEffect(() => { 
+    // Initial fetch including sync
+    fetchAnalytics(true); 
+  }, [workspace?.id]); // Only sync when workspace changes
 
-  useEffect(() => { fetchAnalytics(); }, [fetchAnalytics]);
+  // Fetch without fresh sync when date range changes
+  useEffect(() => {
+    fetchAnalytics(false);
+  }, [range]);
 
   return (
     <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-4 sm:space-y-6 page-enter">
@@ -177,7 +198,7 @@ export default function AnalyticsPage() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={fetchAnalytics}
+            onClick={() => fetchAnalytics(true)}
             disabled={loading}
             className="flex h-9 w-9 items-center justify-center rounded-lg border border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors disabled:opacity-50"
           >

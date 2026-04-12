@@ -8,10 +8,11 @@ import {
   Twitter, Linkedin, Instagram, Youtube, Facebook,
   Clock, Layers, Globe, PenTool, TrendingUp, Eye,
   Image as ImageIcon, Send, MoreHorizontal, Heart, MessageCircle,
-  Repeat2, Bookmark, Play, Hash, AtSign, Bell,
+  Repeat2, Bookmark, Play, Hash, AtSign, Bell, Settings2, X, Plus,
 } from "lucide-react";
 import { useState } from "react";
 import { AnimatedSection, StaggerChildren } from "@/components/ui/animated-section";
+import Image from "next/image";
 
 /* ─── Platform icons ───────────────────────────────────────── */
 
@@ -161,7 +162,7 @@ const TESTIMONIALS = [
 const FAQS = [
   {
     q: "Is there a free plan?",
-    a: "Yes! Our free plan includes 10 social accounts, 50 posts per month, and access to all supported platforms. No credit card required.",
+    a: "Yes! Our free plan includes 3 social channels, 50 posts per month, and access to all supported platforms. No credit card required.",
   },
   {
     q: "Which social platforms are supported?",
@@ -239,175 +240,238 @@ function PlatformMarquee() {
   );
 }
 
-/* ─── Realistic Dashboard Mockup ───────────────────────────── */
+/* ─── Realistic Upload Mockup ───────────────────────────── */
 
-function DashboardMockup() {
-  const scheduledPosts = [
-    {
-      platform: Twitter,
-      platformColor: "text-sky-400",
-      platformBg: "bg-sky-500/10",
-      text: "Excited to announce our new feature launch! Check out what we've been building...",
-      time: "Today, 2:30 PM",
-      status: "Scheduled",
-      statusColor: "text-violet-400 bg-violet-500/10",
-      engagement: "1.2K",
-    },
-    {
-      platform: Instagram,
-      platformColor: "text-pink-400",
-      platformBg: "bg-pink-500/10",
-      text: "Behind the scenes of our latest photoshoot. New collection dropping Friday!",
-      time: "Today, 5:00 PM",
-      status: "Scheduled",
-      statusColor: "text-violet-400 bg-violet-500/10",
-      engagement: "3.4K",
-    },
-    {
-      platform: Linkedin,
-      platformColor: "text-blue-500",
-      platformBg: "bg-blue-500/10",
-      text: "5 lessons I learned scaling our startup to 10K users in 30 days...",
-      time: "Tomorrow, 9:00 AM",
-      status: "Draft",
-      statusColor: "text-zinc-400 bg-zinc-500/10",
-      engagement: "890",
-    },
-  ];
-
+function UploadMockup() {
   return (
-    <div className="relative rounded-2xl border border-border/60 bg-card/80 backdrop-blur-sm overflow-hidden shadow-xl">
-      {/* Window chrome */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-border/40 bg-card/60">
-        <div className="flex items-center gap-1.5">
-          <div className="h-3 w-3 rounded-full bg-red-500/60" />
-          <div className="h-3 w-3 rounded-full bg-amber-500/60" />
-          <div className="h-3 w-3 rounded-full bg-emerald-500/60" />
-        </div>
-        <div className="flex-1 flex justify-center">
-          <div className="rounded-md bg-muted/40 px-12 py-1 text-[10px] text-muted-foreground/60 flex items-center gap-1.5">
-            <div className="h-2.5 w-2.5 rounded-full bg-emerald-500/60" />
-            app.onelinker.ai
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="h-6 w-6 rounded-md bg-muted/30 flex items-center justify-center">
-            <Bell className="h-3 w-3 text-muted-foreground/50" />
-          </div>
-        </div>
-      </div>
-
-      {/* Dashboard content */}
-      <div className="p-4 sm:p-6 space-y-4 bg-gradient-to-b from-card/80 to-background/40">
-        {/* Top bar */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg bg-primary/20 flex items-center justify-center">
-              <Calendar className="h-4 w-4 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-foreground">Content Calendar</p>
-              <p className="text-[11px] text-muted-foreground">April 2026</p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <div className="h-8 px-3 rounded-lg bg-muted/40 flex items-center gap-1.5 text-[11px] text-muted-foreground font-medium">
-              <Eye className="h-3 w-3" /> Week
-            </div>
-            <div className="h-8 px-3 rounded-lg bg-primary/20 text-primary flex items-center gap-1.5 text-[11px] font-semibold">
-              <PenTool className="h-3 w-3" /> New Post
-            </div>
-          </div>
-        </div>
-
-        {/* Stats row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { label: "Scheduled", value: "24", change: "+3 today", color: "text-violet-400", icon: Clock },
-            { label: "Published", value: "156", change: "this month", color: "text-emerald-400", icon: CheckCircle2 },
-            { label: "Engagement", value: "12.4K", change: "+18.2%", color: "text-pink-400", icon: Heart },
-            { label: "Growth", value: "+842", change: "followers", color: "text-sky-400", icon: TrendingUp },
-          ].map((stat) => (
-            <div key={stat.label} className="rounded-xl border border-border/40 bg-card/60 p-3">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <stat.icon className={cn("h-3 w-3", stat.color)} />
-                <p className="text-[10px] text-muted-foreground font-medium">{stat.label}</p>
+    <div className="relative rounded-2xl border border-border/20 bg-white dark:bg-[#1C1C1E] shadow-2xl overflow-hidden w-full max-w-5xl text-foreground font-sans ring-1 ring-black/5 mx-auto">
+      <div className="flex flex-col lg:flex-row min-h-[560px]">
+        
+        {/* Left Pane */}
+        <div className="flex-1 lg:max-w-[60%] p-5 lg:p-6 space-y-4 bg-[#F8F9FB] dark:bg-[#121212]">
+          
+          {/* Publish To Card */}
+          <div className="bg-white dark:bg-[#1C1C1E] border border-border/40 rounded-xl p-5 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+              <div className="flex items-center gap-3">
+                <h3 className="text-[11px] font-black uppercase tracking-widest text-muted-foreground/80">Publish To</h3>
+                <span className="text-[11px] font-bold text-primary cursor-pointer hover:underline">Deselect all</span>
               </div>
-              <p className="text-lg font-bold text-foreground leading-none">{stat.value}</p>
-              <p className="text-[10px] text-emerald-400 font-medium mt-1">{stat.change}</p>
+              <button className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-border/50 text-[11px] font-bold text-muted-foreground/90 hover:bg-muted/30 transition shadow-sm">
+                <Settings2 className="h-3.5 w-3.5" /> Customize per channel
+              </button>
             </div>
-          ))}
-        </div>
-
-        {/* Scheduled posts list */}
-        <div className="hidden sm:block rounded-xl border border-border/40 bg-card/60 overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border/30">
-            <p className="text-xs font-semibold text-foreground">Upcoming Posts</p>
-            <span className="text-[10px] text-muted-foreground">3 of 24 scheduled</span>
-          </div>
-          <div className="divide-y divide-border/30">
-            {scheduledPosts.map((post, i) => (
-              <div key={i} className="flex items-start gap-3 px-4 py-3 hover:bg-muted/10 transition-colors">
-                <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5", post.platformBg)}>
-                  <post.platform className={cn("h-4 w-4", post.platformColor)} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-foreground leading-relaxed line-clamp-1">{post.text}</p>
-                  <div className="flex items-center gap-3 mt-1">
-                    <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                      <Clock className="h-2.5 w-2.5" /> {post.time}
-                    </span>
-                    <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded-full", post.statusColor)}>
-                      {post.status}
-                    </span>
+            
+            <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-none snap-x">
+              
+              {/* Channel 1 */}
+              <div className="flex flex-col items-center gap-2 cursor-pointer group snap-start">
+                <div className="relative h-16 w-16 rounded-3xl border-2 border-primary/20 p-1 group-hover:border-primary transition-colors">
+                  <div className="h-full w-full rounded-2xl bg-teal-500 text-white flex items-center justify-center text-2xl font-bold shadow-inner">O</div>
+                  <div className="absolute -bottom-0.5 -right-0.5 h-5 w-5 rounded-full bg-white dark:bg-black border border-border flex items-center justify-center shadow-sm">
+                    <Youtube className="h-2.5 w-2.5 text-[#FF0000]" />
                   </div>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <div className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
-                    <Eye className="h-2.5 w-2.5" /> {post.engagement}
-                  </div>
-                  <button className="h-6 w-6 rounded flex items-center justify-center text-muted-foreground/40 hover:text-muted-foreground">
-                    <MoreHorizontal className="h-3 w-3" />
-                  </button>
-                </div>
+                <span className="text-[11px] font-semibold text-foreground/90">One</span>
               </div>
-            ))}
-          </div>
-        </div>
 
-        {/* Calendar grid (mobile-hidden, shown on larger screens) */}
-        <div className="sm:hidden rounded-xl border border-border/40 bg-card/60 p-4">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-semibold text-foreground">April 2026</p>
-            <div className="flex gap-1.5">
-              <div className="h-5 w-5 rounded bg-muted/30 flex items-center justify-center text-muted-foreground/60">
-                <ChevronDown className="h-3 w-3 rotate-90" />
+              {/* Channel 2 */}
+              <div className="flex flex-col items-center gap-2 cursor-pointer group snap-start">
+                <div className="relative h-16 w-16 rounded-3xl border border-border/60 p-1 hover:border-violet-400 transition-colors">
+                  <div className="h-full w-full rounded-2xl bg-violet-100 dark:bg-violet-900/40 text-violet-600 flex items-center justify-center text-2xl font-bold shadow-inner">L</div>
+                  <div className="absolute -bottom-0.5 -right-0.5 h-5 w-5 rounded-full bg-white dark:bg-black border border-border flex items-center justify-center shadow-sm">
+                    <TikTokIcon className="h-2.5 w-2.5 text-black dark:text-white" />
+                  </div>
+                </div>
+                <span className="text-[11px] font-semibold text-foreground/90">Luxury</span>
               </div>
-              <div className="h-5 w-5 rounded bg-muted/30 flex items-center justify-center text-muted-foreground/60">
-                <ChevronDown className="h-3 w-3 -rotate-90" />
+
+              {/* Channel 3 */}
+              <div className="flex flex-col items-center gap-2 cursor-pointer group snap-start">
+                <div className="relative h-16 w-16 rounded-3xl border border-border/60 p-1 group-hover:border-blue-400 transition-colors">
+                  <div className="h-full w-full rounded-2xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 shadow-inner">
+                    <div className="w-8 h-8 rounded-full border-[3px] border-blue-400 border-t-blue-200" />
+                  </div>
+                  <div className="absolute -bottom-0.5 -right-0.5 h-5 w-5 rounded-full bg-white dark:bg-black border border-border flex items-center justify-center shadow-sm">
+                    <Facebook className="h-2.5 w-2.5 text-[#1877F2]" fill="currentColor" />
+                  </div>
+                </div>
+                <span className="text-[11px] font-semibold text-foreground/90">Bahria</span>
+              </div>
+
+              {/* Channel 4 */}
+              <div className="flex flex-col items-center gap-2 cursor-pointer group snap-start">
+                <div className="relative h-16 w-16 rounded-3xl border border-border/60 p-1 group-hover:border-blue-400 transition-colors">
+                  <div className="h-full w-full rounded-2xl bg-gradient-to-br from-pink-500 via-purple-500 to-blue-500 flex items-center justify-center shadow-inner" />
+                  <div className="absolute -bottom-0.5 -right-0.5 h-5 w-5 rounded-full bg-white dark:bg-black border border-border flex items-center justify-center shadow-sm">
+                    <Facebook className="h-2.5 w-2.5 text-[#1877F2]" fill="currentColor" />
+                  </div>
+                </div>
+                <span className="text-[11px] font-semibold text-foreground/90">Test</span>
+              </div>
+
+              {/* Channel 5 */}
+              <div className="flex flex-col items-center gap-2 cursor-pointer group snap-start">
+                <div className="relative h-16 w-16 rounded-3xl border border-border/60 p-1 hover:border-pink-400 transition-colors">
+                  <div className="h-full w-full rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shadow-inner">
+                    <Clock className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div className="absolute -bottom-0.5 -right-0.5 h-5 w-5 rounded-full bg-white dark:bg-black border border-border flex items-center justify-center shadow-sm">
+                    <Instagram className="h-2.5 w-2.5 text-[#E4405F]" />
+                  </div>
+                </div>
+                <span className="text-[11px] font-semibold text-foreground/90">Test</span>
+              </div>
+
+              {/* Channel 6 */}
+              <div className="flex flex-col items-center gap-2 cursor-pointer group snap-start">
+                <div className="relative h-16 w-16 rounded-3xl border border-border/60 p-1 hover:border-blue-400 transition-colors">
+                  <div className="h-full w-full rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-inner">
+                    <span className="text-[28px] font-sans font-bold -mt-1 tracking-tighter">O</span>
+                  </div>
+                  <div className="absolute -bottom-0.5 -right-0.5 h-5 w-5 rounded-full bg-white dark:bg-black border border-border flex items-center justify-center shadow-sm">
+                    <Facebook className="h-2.5 w-2.5 text-[#1877F2]" fill="currentColor" />
+                  </div>
+                </div>
+                <span className="text-[11px] font-semibold text-foreground/90">OneLinker</span>
+              </div>
+
+              {/* Add Button */}
+              <div className="flex flex-col items-center gap-2 cursor-pointer group snap-start">
+                <div className="h-16 w-16 rounded-full border-2 border-dashed border-border/40 hover:border-primary/40 bg-transparent flex items-center justify-center transition-all group-hover:scale-105 group-hover:bg-primary/5">
+                  <Plus className="h-5 w-5 text-muted-foreground group-hover:text-primary" />
+                </div>
+                <span className="text-[11px] font-semibold text-transparent select-none">Add</span>
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-7 gap-1.5">
-            {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
-              <div key={`d-${i}`} className="text-[9px] text-muted-foreground/50 text-center font-medium">{d}</div>
-            ))}
-            {[...Array(35)].map((_, i) => (
-              <div
-                key={i}
-                className={cn(
-                  "aspect-square rounded-md flex items-center justify-center text-[9px]",
-                  [3, 10, 14, 21, 27].includes(i)
-                    ? "bg-primary/15 border border-primary/25 text-primary font-semibold"
-                    : [6, 17, 24].includes(i)
-                    ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 font-semibold"
-                    : "bg-muted/15 border border-border/20 text-muted-foreground/40"
-                )}
-              >
-                {i + 1 <= 30 ? i + 1 : ""}
-              </div>
-            ))}
+
+          {/* Post Format */}
+          <div className="bg-white dark:bg-[#1C1C1E] border border-border/40 rounded-xl p-4 shadow-sm flex items-center justify-between">
+             <div className="flex items-center gap-4">
+               <h3 className="text-[11px] font-black uppercase tracking-widest text-muted-foreground/80">Post Format</h3>
+               <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 text-[11px] font-bold border border-violet-200 dark:border-violet-800/50">
+                 <Sparkles className="h-3 w-3" /> Auto-detected
+               </span>
+             </div>
+             <ChevronDown className="h-4 w-4 text-muted-foreground/60" />
           </div>
+
+          {/* Caption Area */}
+          <div className="bg-white dark:bg-[#1C1C1E] border border-border/40 rounded-xl p-6 shadow-sm min-h-[220px] flex flex-col justify-between">
+             <div className="text-[13px] text-foreground/90 font-medium leading-relaxed font-sans">
+               Start your day the right way 🌞 <br/>
+               Freshly brewed coffee, rich aroma, and the perfect moment of calm. <br/><br/>
+               Made from premium beans, crafted for real coffee lovers. <br/>
+               <span className="text-foreground/70">#CoffeeLovers #MorningVibes #FreshBrew #CafeLife #DailyRitual</span>
+             </div>
+             
+             {/* Limit progress bars */}
+             <div className="mt-8 space-y-4">
+                <div className="flex items-center text-[10px] text-muted-foreground font-semibold">
+                   <Instagram className="h-3.5 w-3.5 text-[#E4405F]" />
+                   <div className="h-1 bg-muted/60 rounded-full w-24 mx-3 overflow-hidden">
+                     <div className="h-full bg-[#E4405F] w-[40%]" />
+                   </div>
+                   <span className="w-8">1982</span>
+                   <span className="text-muted-foreground/50 w-10">#5/30</span>
+                   
+                   <Facebook className="h-3.5 w-3.5 text-[#1877F2] ml-4" />
+                   <div className="h-1 bg-muted/60 rounded-full w-24 mx-3 overflow-hidden">
+                     <div className="h-full bg-[#1877F2] w-[60%]" />
+                   </div>
+                   <span className="w-8">1782</span>
+                   <span className="text-[#E4405F] flex items-center gap-1 w-10">#5/3 <div className="h-2.5 w-2.5 rounded-full border border-current flex items-center justify-center text-[6px]">!</div></span>
+
+                   <TikTokIcon className="h-3 w-3 text-foreground ml-3" />
+                   <div className="h-1 bg-muted/60 rounded-full w-24 mx-3 overflow-hidden">
+                     <div className="h-full bg-violet-600 w-[20%]" />
+                   </div>
+                   <span className="w-8">1982</span>
+                   <span className="text-muted-foreground/50 w-10">#5/5</span>
+                </div>
+                
+                <div className="flex items-center text-[10px] text-muted-foreground font-semibold">
+                   <Youtube className="h-3.5 w-3.5 text-[#FF0000]" />
+                   <div className="h-1 bg-muted/60 rounded-full w-24 mx-3 overflow-hidden">
+                     <div className="h-full bg-[#FF0000] w-[30%]" />
+                   </div>
+                   <span className="w-8">4782</span>
+                   <span className="text-muted-foreground/50 w-10">#5/15</span>
+                </div>
+             </div>
+          </div>
+        </div>
+
+        {/* Right Pane (Preview) */}
+        <div className="w-full lg:w-[420px] bg-background lg:border-l border-border/30 p-6 flex flex-col relative pt-12 lg:pt-6">
+           <button className="absolute top-4 right-4 h-8 w-8 flex items-center justify-center rounded-full hover:bg-muted/80 transition-colors border border-border/20 text-muted-foreground bg-muted/20">
+              <X className="h-4 w-4" />
+           </button>
+
+           <div className="bg-[#F8F9FB] dark:bg-[#121212] rounded-xl flex items-center justify-between p-3.5 mb-6 border border-border/40 shadow-sm mt-4 lg:mt-0">
+             <div className="flex items-center gap-2 text-xs font-bold text-foreground/80 tracking-wide">
+               <Eye className="h-4 w-4 text-muted-foreground/80" /> Video • 1920x1080
+             </div>
+           </div>
+
+           {/* Mobile card preview inside */}
+           <div className="border border-border/40 rounded-[24px] bg-white dark:bg-[#1C1C1E] shadow-[0_8px_30px_rgb(0,0,0,0.06)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] flex-1 flex flex-col overflow-hidden max-h-[400px]">
+              {/* Thumbnail image */}
+              <div className="relative h-[220px] bg-muted w-full shrink-0">
+                <Image src="https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=800&q=80" alt="Resort" className="object-cover w-full h-full" fill />
+                {/* Play button */}
+                <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+                   <div className="h-14 w-14 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center hover:bg-black/70 transition-colors shadow-lg cursor-pointer">
+                     <Play className="h-6 w-6 text-white ml-1" fill="white" />
+                   </div>
+                </div>
+                {/* Duration */}
+                <div className="absolute bottom-3 right-3 px-2 py-1 rounded-full bg-black/80 text-white text-[10px] font-bold tracking-wider backdrop-blur-md">
+                  0:57
+                </div>
+                {/* Progress bar */}
+                <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-white/30 backdrop-blur-sm">
+                  <div className="h-full bg-violet-500 rounded-r-full w-[25%]" />
+                </div>
+              </div>
+              
+              {/* Caption preview */}
+              <div className="p-5 flex gap-3.5 flex-1 bg-white dark:bg-[#1C1C1E]">
+                 <div className="h-10 w-10 rounded-full bg-teal-500 text-white font-bold flex items-center justify-center shrink-0 text-sm shadow-sm tracking-tighter">O</div>
+                 <div className="min-w-0 pr-4">
+                    <h4 className="text-[13px] text-foreground font-bold leading-snug line-clamp-2">
+                       Made from premium beans, crafted for real coffee lovers. #CoffeeLovers #MorningVibes...
+                    </h4>
+                    <p className="text-[11px] text-muted-foreground mt-1.5 font-medium">One Linker</p>
+                    <p className="text-[10px] text-muted-foreground/70 mt-0.5">0 views • Just now</p>
+                 </div>
+                 <MoreHorizontal className="h-5 w-5 text-muted-foreground/50 shrink-0 ml-auto" />
+              </div>
+           </div>
+           
+           {/* Stats below preview */}
+           <div className="mt-8 space-y-5 px-2">
+              <div>
+                <div className="flex items-center justify-between text-[11px] font-bold tracking-wide mb-2 uppercase">
+                  <span className="text-muted-foreground/80">Characters</span>
+                  <span className="text-foreground">218 <span className="text-muted-foreground/50 mx-1">/</span> 5,000</span>
+                </div>
+                <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                  <div className="h-full bg-violet-500 w-[15%]" />
+                </div>
+              </div>
+              
+              <div>
+                <div className="flex items-center justify-between text-[11px] font-bold tracking-wide mb-2 uppercase">
+                  <span className="text-muted-foreground/80">Hashtags</span>
+                  <span className="text-foreground">5 <span className="text-muted-foreground/50 mx-1">/</span> 15</span>
+                </div>
+                 <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                  <div className="h-full bg-muted-foreground/30 w-[33%]" />
+                </div>
+              </div>
+           </div>
         </div>
       </div>
     </div>
@@ -529,280 +593,325 @@ function AnalyticsMockup() {
 
 export default function LandingPage() {
   return (
-    <div className="overflow-hidden">
+    <div className="overflow-hidden bg-background">
       {/* ════════ HERO ════════ */}
-      <AnimatedSection animation="fade-up" delay={100}>
-      <section className="relative">
-        {/* Background effects */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[500px] bg-primary/8 rounded-full blur-[120px]" />
-          <div className="absolute top-32 right-0 w-[400px] h-[400px] bg-violet-500/5 rounded-full blur-[100px]" />
-          <div className="absolute top-48 left-0 w-[300px] h-[300px] bg-sky-500/5 rounded-full blur-[80px]" />
+      <section className="relative pt-20 pb-24 lg:pt-32 lg:pb-40 overflow-hidden">
+        {/* Animated Background Gradients */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px] animate-pulse" />
+          <div className="absolute top-[20%] right-[-5%] w-[30%] h-[30%] bg-violet-500/10 rounded-full blur-[100px] animate-pulse delay-700" />
+          <div className="absolute bottom-[10%] left-[20%] w-[25%] h-[25%] bg-sky-500/10 rounded-full blur-[80px]" />
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-border/40 to-transparent" />
         </div>
 
-        <div className="relative max-w-6xl mx-auto px-5 pt-20 sm:pt-28 pb-16 sm:pb-24">
-          {/* Badge */}
-          <div className="flex justify-center mb-8">
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 backdrop-blur-sm px-4 py-1.5 text-xs font-medium text-primary">
-              <Sparkles className="h-3.5 w-3.5" />
-              Now with AI-powered content creation
-              <ArrowRight className="h-3 w-3" />
-            </div>
-          </div>
+        <div className="relative max-w-7xl mx-auto px-6 lg:px-10">
+          <div className="text-center max-w-4xl mx-auto space-y-8">
+            {/* Announcement Badge */}
+            <AnimatedSection animation="fade-down" delay={100} className="flex justify-center">
+              <Link
+                href="/changelog"
+                className="group inline-flex items-center gap-2.5 rounded-full border border-primary/20 bg-primary/5 hover:bg-primary/10 backdrop-blur-md px-4 py-2 text-xs font-bold text-primary transition-all hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <Image
+                  src="/logo.png"
+                  alt="Onelinker"
+                  width={20}
+                  height={20}
+                  className="rounded-md"
+                />
+                <span>New: AI-powered content generation</span>
+                <ChevronDown className="h-3.5 w-3.5 -rotate-90 text-primary/60 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            </AnimatedSection>
 
-          {/* Headline */}
-          <h1 className="text-center text-4xl sm:text-5xl lg:text-6xl font-extrabold text-foreground tracking-tight leading-[1.1] max-w-4xl mx-auto">
-            Post everywhere.{" "}
-            <span className="bg-gradient-to-r from-primary via-violet-400 to-sky-400 bg-clip-text text-transparent">
-              Manage it all
-            </span>{" "}
-            in one place.
-          </h1>
+            {/* Main Headline */}
+            <AnimatedSection animation="fade-up" delay={200}>
+              <h1 className="text-4xl sm:text-6xl lg:text-7xl font-medium text-foreground tracking-tight leading-[1.05]">
+                Post Everywhere. <br />
+                <span className="bg-gradient-to-r from-primary via-violet-500 to-sky-500 bg-clip-text text-transparent">
+                  Automate Everything.
+                </span>
+              </h1>
+            </AnimatedSection>
 
-          {/* Subheading */}
-          <p className="text-center text-base sm:text-lg text-muted-foreground mt-6 max-w-2xl mx-auto leading-relaxed">
-            Schedule posts, generate content with AI, track performance, and manage all your
-            social channels from a single dashboard. Trusted by 5,000+ creators and agencies.
-          </p>
+            {/* Subheading */}
+            <AnimatedSection animation="fade-up" delay={300}>
+              <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed font-medium">
+                The all-in-one platform for creators and agencies. Schedule, publish, and track 10+ social channels from one unified dashboard.
+              </p>
+            </AnimatedSection>
 
-          {/* CTA buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-10">
-            <Link
-              href="/signup"
-              className="inline-flex items-center gap-2 rounded-full bg-primary px-7 py-3 text-sm font-semibold text-white hover:bg-primary/90 transition-all shadow-glow-sm hover:shadow-glow w-full sm:w-auto justify-center"
-            >
-              Get started free <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link
-              href="/pricing"
-              className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-card/60 backdrop-blur-sm px-7 py-3 text-sm font-semibold text-foreground hover:bg-muted/40 transition-all w-full sm:w-auto justify-center"
-            >
-              View pricing
-            </Link>
-          </div>
+            {/* Hero CTAs */}
+            <AnimatedSection animation="fade-up" delay={400} className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+              <Link
+                href="/signup"
+                className="group relative inline-flex items-center gap-2 rounded-full bg-foreground px-10 py-4 text-base font-bold text-background transition-all hover:scale-[1.03] active:scale-[0.97] shadow-xl hover:shadow-primary/25 w-full sm:w-auto overflow-hidden"
+              >
+                <span className="relative z-10 flex items-center gap-2">
+                  Get Started for Free <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+                </span>
+                <div className="absolute inset-0 bg-gradient-to-r from-primary to-violet-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </Link>
+              <Link
+                href="/how-it-works"
+                className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-white/50 dark:bg-black/50 backdrop-blur-md px-10 py-4 text-base font-bold text-foreground hover:bg-muted/80 transition-all w-full sm:w-auto justify-center"
+              >
+                <Play className="h-4 w-4 fill-foreground" /> See How it Works
+              </Link>
+            </AnimatedSection>
 
-          {/* Social proof line */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8">
-            {/* Avatars */}
-            <div className="flex -space-x-2.5">
-              {[
-                { bg: "bg-gradient-to-br from-sky-400 to-sky-600", letter: "S" },
-                { bg: "bg-gradient-to-br from-pink-400 to-pink-600", letter: "M" },
-                { bg: "bg-gradient-to-br from-emerald-400 to-emerald-600", letter: "A" },
-                { bg: "bg-gradient-to-br from-amber-400 to-amber-600", letter: "J" },
-                { bg: "bg-gradient-to-br from-violet-400 to-violet-600", letter: "K" },
-              ].map((u, i) => (
-                <div
-                  key={i}
-                  className={cn(
-                    "h-8 w-8 rounded-full border-2 border-background flex items-center justify-center text-[10px] font-bold text-white shadow-sm",
-                    u.bg
-                  )}
-                >
-                  {u.letter}
+            {/* Social Proof Line */}
+            <AnimatedSection animation="fade-up" delay={500} className="pt-8">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+                <div className="flex -space-x-3">
+                  {[
+                    { initials: "SC", bg: "bg-pink-500" },
+                    { initials: "MW", bg: "bg-violet-500" },
+                    { initials: "PP", bg: "bg-emerald-500" },
+                    { initials: "JL", bg: "bg-sky-500" },
+                    { initials: "AR", bg: "bg-amber-500" },
+                  ].map((a) => (
+                    <div key={a.initials} className={cn("h-10 w-10 rounded-full border-4 border-background flex items-center justify-center text-[10px] font-black text-white shadow-sm", a.bg)}>
+                      {a.initials}
+                    </div>
+                  ))}
+                  <div className="h-10 w-10 rounded-full border-4 border-background bg-primary/10 flex items-center justify-center text-[10px] font-black text-primary">
+                    +5K
+                  </div>
                 </div>
-              ))}
-              <div className="h-8 w-8 rounded-full border-2 border-background flex items-center justify-center text-[9px] font-bold text-muted-foreground bg-muted/60">
-                +5K
+                <div className="text-left">
+                  <div className="flex items-center gap-0.5 mb-0.5">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
+                    ))}
+                  </div>
+                  <p className="text-sm font-bold text-muted-foreground whitespace-nowrap">
+                    Loved by <span className="text-foreground">5,000+</span> creators & agencies
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-0.5">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                ))}
-              </div>
-              <span className="text-sm text-muted-foreground">
-                <span className="text-foreground font-semibold">4.9/5</span> from 2,000+ reviews
-              </span>
-            </div>
+            </AnimatedSection>
           </div>
 
-          {/* Dashboard mockup */}
-          <div className="relative mt-16 sm:mt-20">
-            <DashboardMockup />
-            {/* Glow behind mockup */}
-            <div className="absolute -inset-4 bg-primary/5 rounded-3xl blur-3xl -z-10" />
-          </div>
+          {/* Interactive Mockup Container */}
+          <AnimatedSection animation="scale" delay={600} className="relative mt-20 lg:mt-32">
+            <div className="relative group">
+              {/* Floating Element 1 - Engagement Badge */}
+              <div className="absolute -top-10 -left-10 z-20 hidden lg:block animate-bounce-slow">
+                <div className="bg-white/80 dark:bg-black/80 backdrop-blur-xl border border-border/50 rounded-2xl p-4 shadow-2xl">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                      <TrendingUp className="h-5 w-5 text-emerald-500" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-muted-foreground uppercase">Engagement</p>
+                      <p className="text-lg font-black text-foreground">+42.8%</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mockup */}
+              <UploadMockup />
+
+            </div>
+
+            {/* Backdrop Glow */}
+            <div className="absolute -inset-10 bg-primary/10 rounded-[40px] blur-[100px] -z-10 group-hover:bg-primary/15 transition-colors" />
+          </AnimatedSection>
         </div>
       </section>
-      </AnimatedSection>
 
-      {/* ════════ PLATFORM LOGOS (Marquee) ════════ */}
-      <AnimatedSection animation="fade-up">
-      <section className="border-y border-border/30 bg-muted/5">
-        <div className="max-w-6xl mx-auto px-5 py-10">
-          <p className="text-center text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-6">
-            Publish to every major platform
+      {/* ════════ SOCIAL PROOF MARQUEE ════════ */}
+      <section className="relative py-20 bg-muted/10 border-y border-border/40 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-6 lg:px-10">
+          <p className="text-center text-[11px] font-black text-muted-foreground/60 uppercase tracking-[0.2em] mb-12">
+            Publish To Every Major Channel
           </p>
           <PlatformMarquee />
         </div>
       </section>
-      </AnimatedSection>
 
-      {/* ════════ STATS ════════ */}
-      <section className="max-w-6xl mx-auto px-5 py-20">
-        <StaggerChildren animation="scale" staggerMs={120} className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-          {STATS.map((s) => (
-            <div key={s.label} className="text-center group">
-              <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/5 border border-primary/10 mb-4 group-hover:bg-primary/10 transition-colors">
-                <s.icon className="h-5 w-5 text-primary" />
-              </div>
-              <p className="text-3xl sm:text-4xl font-extrabold text-foreground">{s.value}</p>
-              <p className="text-sm text-muted-foreground mt-1">{s.label}</p>
-            </div>
-          ))}
-        </StaggerChildren>
-      </section>
-
-      {/* ════════ FEATURES ════════ */}
-      <section id="features" className="scroll-mt-20">
-        <div className="max-w-6xl mx-auto px-5 py-20">
-          <AnimatedSection animation="fade-up">
-          <div className="text-center mb-14">
-            <p className="text-xs font-semibold text-primary uppercase tracking-widest mb-3">
-              Features
-            </p>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight">
-              Built for creators.{" "}
-              <span className="text-muted-foreground">Evolving for the future.</span>
-            </h2>
-            <p className="text-base text-muted-foreground mt-4 max-w-xl mx-auto leading-relaxed">
-              Everything you need to create, schedule, analyze, and grow — across every platform, in one beautiful interface.
-            </p>
+      {/* ════════ CORE FEATURES ════════ */}
+      <section id="features" className="relative py-24 sm:py-32 overflow-hidden scroll-mt-20">
+        <div className="max-w-7xl mx-auto px-6 lg:px-10">
+          <div className="flex flex-col lg:flex-row items-end justify-between gap-10 mb-20">
+            <AnimatedSection animation="fade-right" className="max-w-2xl text-left">
+              <p className="text-xs font-black text-primary uppercase tracking-[0.2em] mb-4">Features</p>
+              <h2 className="text-4xl sm:text-5xl font-medium text-foreground tracking-tight mb-6">
+                Everything You Need to <br />
+                <span className="text-muted-foreground/40">Grow Your Accounts.</span>
+              </h2>
+              <p className="text-lg text-muted-foreground font-medium leading-relaxed">
+                Streamline your workflow with tools built specifically for modern social media management. One place for your entire team.
+              </p>
+            </AnimatedSection>
+            
+            <AnimatedSection animation="fade-left">
+              <Link
+                href="/#features"
+                className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-muted font-bold text-foreground hover:bg-muted-foreground/10 transition-colors"
+              >
+                Explore All Features <ArrowRight className="h-4 w-4" />
+              </Link>
+            </AnimatedSection>
           </div>
-          </AnimatedSection>
 
-          <StaggerChildren animation="fade-up" staggerMs={100} className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <StaggerChildren animation="blur" staggerMs={150} className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {FEATURES.map((f) => (
               <div
                 key={f.title}
-                className="group rounded-2xl border border-border/50 bg-card/60 p-6 hover:border-border hover:bg-card/80 transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5"
+                className="group relative rounded-[2.5rem] border border-border/50 bg-card/60 p-8 hover:border-primary/20 hover:bg-card transition-all duration-300 hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1 overflow-hidden"
               >
-                <div className={cn("flex h-11 w-11 items-center justify-center rounded-xl mb-4", f.bg)}>
-                  <f.icon className={cn("h-5 w-5", f.color)} />
+                {/* Decorative Background Icon */}
+                <f.icon className="absolute -top-6 -right-6 h-32 w-32 text-foreground/[0.03] rotate-12 transition-transform group-hover:rotate-0" />
+                
+                <div className={cn("flex h-14 w-14 items-center justify-center rounded-2xl mb-8 shadow-inner", f.bg)}>
+                  <f.icon className={cn("h-6 w-6", f.color)} />
                 </div>
-                <h3 className="text-base font-semibold text-foreground mb-2">{f.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{f.description}</p>
+                <h3 className="text-xl font-bold text-foreground mb-4">{f.title}</h3>
+                <p className="text-muted-foreground leading-relaxed font-medium">
+                  {f.description}
+                </p>
               </div>
             ))}
           </StaggerChildren>
         </div>
       </section>
 
-      {/* ════════ INSIGHTS SECTION ════════ */}
-      <AnimatedSection animation="fade-up">
-      <section className="bg-muted/10 border-y border-border/30">
-        <div className="max-w-6xl mx-auto px-5 py-20">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            {/* Text */}
-            <div>
-              <p className="text-xs font-semibold text-primary uppercase tracking-widest mb-3">
-                Analytics
-              </p>
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight leading-tight">
-                Insights that empower{" "}
-                <span className="text-muted-foreground">every decision</span>
-              </h2>
-              <p className="text-base text-muted-foreground mt-4 leading-relaxed">
-                Stop guessing what works. Our cross-platform analytics show you exactly which
-                posts drive engagement, when your audience is active, and how to optimize your content strategy.
-              </p>
-              <ul className="mt-6 space-y-3">
-                {[
-                  "Cross-platform performance comparison",
-                  "Best time to post recommendations",
-                  "Engagement & growth trend reports",
-                  "Exportable PDF & CSV reports",
-                ].map((item) => (
-                  <li key={item} className="flex items-center gap-2.5 text-sm text-foreground">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href="/signup"
-                className="inline-flex items-center gap-2 mt-8 text-sm font-semibold text-primary hover:underline"
+      {/* ════════ INTERACTIVE STATS ════════ */}
+      <section className="relative py-24 sm:py-32">
+        <div className="max-w-7xl mx-auto px-6 lg:px-10">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-16">
+            {STATS.map((s, i) => (
+              <AnimatedSection 
+                key={s.label} 
+                animation="fade-up" 
+                delay={i * 100} 
+                className="text-center space-y-4"
               >
-                Try it free <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-            </div>
-
-            {/* Analytics mockup */}
-            <AnalyticsMockup />
+                <div className="inline-flex h-16 w-16 items-center justify-center rounded-[2rem] bg-muted/30 border border-border/40 text-primary mb-2 shadow-sm animate-float">
+                  <s.icon className="h-7 w-7" />
+                </div>
+                <div>
+                  <p className="text-4xl sm:text-5xl font-medium text-foreground tracking-tighter mb-1">{s.value}</p>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest leading-relaxed">
+                    {s.label}
+                  </p>
+                </div>
+              </AnimatedSection>
+            ))}
           </div>
         </div>
       </section>
-      </AnimatedSection>
+
+      {/* ════════ DATA & ANALYTICS SECTION ════════ */}
+      <section className="relative py-24 sm:py-32 bg-foreground/5 border-y border-border/30">
+        <div className="max-w-7xl mx-auto px-6 lg:px-10">
+          <div className="grid lg:grid-cols-2 gap-20 items-center">
+            <div className="order-2 lg:order-1 relative">
+              <AnalyticsMockup />
+              <div className="absolute -inset-10 bg-primary/10 rounded-[30px] blur-[80px] -z-10" />
+            </div>
+            
+            <div className="order-1 lg:order-2 space-y-10">
+              <AnimatedSection animation="fade-left">
+                <p className="text-sm font-black text-primary uppercase tracking-[0.2em] mb-4">Analytics</p>
+                <h2 className="text-4xl sm:text-5xl font-medium text-foreground tracking-tight leading-[1.1]">
+                  Data That Actually <br />
+                  <span className="text-muted-foreground/40">Grows Your Brands.</span>
+                </h2>
+                <p className="text-lg text-muted-foreground font-medium mt-6 leading-relaxed">
+                  Raw numbers are boring. That's why we transform your data into actionable insights that help you post better, smarter, and faster.
+                </p>
+              </AnimatedSection>
+
+              <StaggerChildren animation="fade-left" className="space-y-6">
+                {[
+                  { title: "Smart Time Optimization", desc: "Know exactly when your followers are most active." },
+                  { title: "Cross-Platform Benchmarks", desc: "Compare growth across all your channels in one chart." },
+                  { title: "One-Click PDF Reports", desc: "Professional reports ready for your team or clients." }
+                ].map((item) => (
+                  <div key={item.title} className="flex gap-4">
+                    <div className="flex-shrink-0 mt-1">
+                      <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-foreground">{item.title}</p>
+                      <p className="text-sm text-muted-foreground">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </StaggerChildren>
+
+              <AnimatedSection animation="fade-left" delay={500}>
+                <Link
+                  href="/signup"
+                  className="inline-flex items-center gap-2 rounded-full bg-primary px-8 py-4 text-sm font-bold text-white hover:scale-105 transition-transform shadow-xl shadow-primary/20"
+                >
+                  Explore Analytics <ArrowRight className="h-4 w-4" />
+                </Link>
+              </AnimatedSection>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* ════════ TESTIMONIALS ════════ */}
-      <section className="max-w-6xl mx-auto px-5 py-20">
-        <AnimatedSection animation="fade-up">
-        <div className="text-center mb-14">
-          <p className="text-xs font-semibold text-primary uppercase tracking-widest mb-3">
-            Testimonials
-          </p>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight">
-            Loved by creators{" "}
-            <span className="text-muted-foreground">worldwide</span>
-          </h2>
-          <p className="text-base text-muted-foreground mt-4 max-w-xl mx-auto leading-relaxed">
-            See why thousands of creators, brands, and agencies choose Onelinker.
-          </p>
+      <section className="relative py-24 sm:py-32 bg-background overflow-hidden">
+        <div className="max-w-7xl mx-auto px-6 lg:px-10">
+          <div className="text-center max-w-2xl mx-auto mb-20 space-y-4">
+            <p className="text-xs font-black text-primary uppercase tracking-[0.2em]">Wall of Love</p>
+            <h2 className="text-4xl sm:text-5xl font-medium text-foreground tracking-tight">
+              Built for <span className="text-muted-foreground/40">the World's Best</span> Brands.
+            </h2>
+            <p className="text-base text-muted-foreground font-medium">
+              Join 5,000+ creators and professional teams who trust Onelinker every single day.
+            </p>
+          </div>
+
+          <StaggerChildren animation="blur" staggerMs={150} className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {TESTIMONIALS.map((t) => (
+              <div
+                key={t.name}
+                className="group relative rounded-[2.5rem] border border-border/50 bg-card/60 p-8 hover:bg-card transition-all duration-300"
+              >
+                <div className="flex items-center gap-1 mb-8">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400 shadow-sm" />
+                  ))}
+                </div>
+                <p className="text-lg font-medium text-foreground leading-[1.6] mb-8">
+                  &ldquo;{t.quote}&rdquo;
+                </p>
+                <div className="flex items-center gap-4 mt-auto pt-8 border-t border-border/30">
+                  <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center text-sm font-bold text-white shadow-xl rotate-3 group-hover:rotate-0 transition-transform", t.avatarBg)}>
+                    {t.avatar}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-foreground">{t.name}</p>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{t.role}</p>
+                  </div>
+                  <t.platform className={cn("h-5 w-5 opacity-20 group-hover:opacity-100 transition-opacity", t.platformColor)} />
+                </div>
+              </div>
+            ))}
+          </StaggerChildren>
         </div>
-        </AnimatedSection>
-
-        <StaggerChildren animation="fade-up" staggerMs={120} className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {TESTIMONIALS.map((t) => (
-            <div
-              key={t.name}
-              className="rounded-2xl border border-border/50 bg-card/60 p-6 hover:border-border hover:bg-card/80 transition-all duration-200 flex flex-col"
-            >
-              {/* Stars */}
-              <div className="flex items-center gap-0.5 mb-4">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                ))}
-              </div>
-
-              {/* Quote */}
-              <p className="text-sm text-foreground leading-relaxed flex-1">
-                &ldquo;{t.quote}&rdquo;
-              </p>
-
-              {/* Author */}
-              <div className="flex items-center gap-3 mt-5 pt-5 border-t border-border/30">
-                <div className={cn("h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold text-white", t.avatarBg)}>
-                  {t.avatar}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-foreground">{t.name}</p>
-                  <p className="text-xs text-muted-foreground">{t.role} &middot; {t.followers}</p>
-                </div>
-                <t.platform className={cn("h-4 w-4 shrink-0", t.platformColor)} />
-              </div>
-            </div>
-          ))}
-        </StaggerChildren>
       </section>
 
       {/* ════════ HOW IT WORKS ════════ */}
-      <section className="bg-muted/10 border-y border-border/30">
-        <div className="max-w-6xl mx-auto px-5 py-20">
+      <section className="relative py-24 sm:py-32 bg-muted/10 border-y border-border/30">
+        <div className="max-w-7xl mx-auto px-6 lg:px-10">
           <AnimatedSection animation="fade-up">
-          <div className="text-center mb-14">
-            <p className="text-xs font-semibold text-primary uppercase tracking-widest mb-3">
-              How it works
-            </p>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight">
-              Up and running in minutes
-            </h2>
-          </div>
+            <div className="text-center mb-16 space-y-4">
+              <p className="text-xs font-black text-primary uppercase tracking-[0.2em]">Step by Step</p>
+              <h2 className="text-4xl font-medium text-foreground">How it Works</h2>
+              <p className="text-muted-foreground font-medium">Up and running in less than 2 minutes.</p>
+            </div>
           </AnimatedSection>
 
           <StaggerChildren animation="fade-up" staggerMs={150} className="grid sm:grid-cols-3 gap-8 relative">
-            {/* Connecting line (desktop only) */}
             {[
               {
                 step: "01",
@@ -850,75 +959,62 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ════════ FAQ ════════ */}
-      <AnimatedSection animation="fade-up">
-      <section>
-        <div className="max-w-3xl mx-auto px-5 py-20">
-          <div className="text-center mb-12">
-            <p className="text-xs font-semibold text-primary uppercase tracking-widest mb-3">
-              FAQ
-            </p>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight">
-              Frequently asked questions
-            </h2>
+      {/* ════════ FAQ SECTION ════════ */}
+      <section className="relative py-24 sm:py-32 bg-background border-t border-border/30">
+        <div className="max-w-4xl mx-auto px-6">
+          <div className="text-center mb-16 space-y-4">
+            <h2 className="text-4xl font-medium text-foreground">Common Questions</h2>
+            <p className="text-muted-foreground font-medium">Everything you need to know about getting started.</p>
           </div>
-
-          <div className="rounded-2xl border border-border/50 bg-card/60 px-6 divide-y divide-border/40">
+          <div className="rounded-[2.5rem] border border-border/50 bg-card/60 p-8 sm:p-12 divide-y divide-border/30 shadow-xl">
             {FAQS.map((faq) => (
               <FaqItem key={faq.q} q={faq.q} a={faq.a} />
             ))}
           </div>
-
-          <p className="text-center text-sm text-muted-foreground mt-8">
-            Still have questions?{" "}
-            <Link href="/contact" className="text-primary font-medium hover:underline">
-              Get in touch
-            </Link>
-          </p>
         </div>
       </section>
-      </AnimatedSection>
 
       {/* ════════ FINAL CTA ════════ */}
-      <AnimatedSection animation="scale">
-      <section className="relative">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-primary/8 rounded-full blur-[120px]" />
-        </div>
-
-        <div className="relative max-w-3xl mx-auto px-5 py-24 text-center">
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-foreground tracking-tight">
-            Ready to take control of{" "}
-            <span className="bg-gradient-to-r from-primary to-violet-400 bg-clip-text text-transparent">
-              your social channels?
-            </span>
-          </h2>
-          <p className="text-base text-muted-foreground mt-4 max-w-lg mx-auto leading-relaxed">
-            Join thousands of creators and agencies who schedule smarter with Onelinker.
-            Free forever — no credit card required.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-8">
-            <Link
-              href="/signup"
-              className="inline-flex items-center gap-2 rounded-full bg-primary px-8 py-3.5 text-sm font-semibold text-white hover:bg-primary/90 transition-all shadow-glow-sm hover:shadow-glow w-full sm:w-auto justify-center"
-            >
-              Get started free <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 mt-6">
-            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /> Free forever plan
-            </span>
-            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /> No credit card
-            </span>
-            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /> Cancel anytime
-            </span>
-          </div>
+      <section className="relative pt-32 pb-48">
+        <div className="max-w-7xl mx-auto px-6">
+          <AnimatedSection animation="scale" className="relative p-10 sm:p-20 rounded-[3rem] bg-foreground overflow-hidden shadow-2xl">
+            {/* Background Texture */}
+            <div className="absolute inset-0 opacity-20 pointer-events-none bg-[radial-gradient(circle_at_20%_30%,_rgba(255,255,255,0.1),_transparent)]" />
+            <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-primary rounded-full blur-[100px] opacity-20" />
+            
+            <div className="relative z-10 text-center space-y-10">
+              <h2 className="text-4xl sm:text-6xl font-medium text-background tracking-tight leading-[1.1]">
+                Ready to Grow Your <br />
+                <span className="text-background/40">Social Presence?</span>
+              </h2>
+              <p className="text-lg sm:text-xl text-background/60 max-w-2xl mx-auto font-medium leading-relaxed">
+                Join 5,000+ creators scheduling smarter. Free forever, no credit card required. Cancel anytime. 
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+                <Link
+                  href="/signup"
+                  className="flex items-center justify-center gap-2 rounded-full bg-background px-12 py-5 text-lg font-black text-foreground hover:scale-105 active:scale-95 transition-all w-full sm:w-auto shadow-2xl shadow-black/40"
+                >
+                  Start for Free <ArrowRight className="h-6 w-6" />
+                </Link>
+                <Link
+                  href="/contact"
+                  className="text-lg font-black text-background/80 hover:text-background transition-colors px-6"
+                >
+                  Contact Sales
+                </Link>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4 pt-4 border-t border-background/10">
+                {["3 social channels", "No credit card", "Cancel anytime", "Full analytics"].map((feat) => (
+                  <div key={feat} className="flex items-center gap-2 text-xs font-bold text-background/50 uppercase tracking-widest">
+                    <CheckCircle2 className="h-4 w-4" /> {feat}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </AnimatedSection>
         </div>
       </section>
-      </AnimatedSection>
     </div>
   );
 }

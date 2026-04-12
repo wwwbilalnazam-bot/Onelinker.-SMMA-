@@ -50,6 +50,7 @@ export interface MetaIGAccount {
 const FACEBOOK_ONLY_SCOPES = [
   "pages_show_list",
   "pages_read_engagement",
+  "pages_manage_engagement",
   "pages_manage_posts",
   "pages_read_user_content",
   "business_management",
@@ -67,6 +68,7 @@ const INSTAGRAM_SCOPES = [
 const ALL_META_SCOPES = [
   "pages_show_list",
   "pages_read_engagement",
+  "pages_manage_engagement",
   "pages_manage_posts",
   "pages_read_user_content",
   "instagram_basic",
@@ -207,12 +209,19 @@ export async function syncMetaAccountsToSupabase(
   /** Which platform was requested: "facebook" or "instagram". Only sync that one. */
   targetPlatform?: string
 ): Promise<{ synced: number; errors: number }> {
+  const { TokenVault } = await import("@/lib/services/TokenVault");
   const serviceClient = createServiceClient();
   let synced = 0;
   let errors = 0;
 
   const syncFacebook = !targetPlatform || targetPlatform === "facebook";
   const syncInstagram = !targetPlatform || targetPlatform === "instagram";
+
+  // Validate encryption is configured
+  if (!TokenVault.isConfigured()) {
+    console.error("[meta/accounts] TOKEN_ENCRYPTION_KEY not configured. Tokens cannot be stored securely.");
+    throw new Error("TOKEN_ENCRYPTION_KEY not configured. Set it in .env.local");
+  }
 
   // ── Sync Facebook Pages (only if connecting Facebook) ──────
   if (!syncFacebook) {
@@ -221,22 +230,28 @@ export async function syncMetaAccountsToSupabase(
     if (syncInstagram) {
       for (const page of oauthResult.pages) {
         if (page.instagram_business_account?.id) {
-          await serviceClient
-            .from("meta_tokens")
-            .upsert(
-              {
-                workspace_id: workspaceId,
-                account_id: `meta_fb_${page.id}`,
-                platform: "facebook",
-                page_id: page.id,
-                access_token: page.access_token,
-                user_access_token: oauthResult.userAccessToken,
-                meta_user_id: oauthResult.userId,
-                expires_at: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
-                updated_at: new Date().toISOString(),
-              },
-              { onConflict: "workspace_id,account_id" }
-            );
+          try {
+            const encryptedToken = TokenVault.encrypt(page.access_token);
+            await serviceClient
+              .from("meta_tokens")
+              .upsert(
+                {
+                  workspace_id: workspaceId,
+                  account_id: `meta_fb_${page.id}`,
+                  platform: "facebook",
+                  page_id: page.id,
+                  access_token: encryptedToken,
+                  user_access_token: TokenVault.encrypt(oauthResult.userAccessToken),
+                  meta_user_id: oauthResult.userId,
+                  expires_at: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+                  updated_at: new Date().toISOString(),
+                },
+                { onConflict: "workspace_id,account_id" }
+              );
+          } catch (err) {
+            console.error("[meta/accounts] Failed to encrypt tokens:", err);
+            errors++;
+          }
         }
       }
     }
@@ -245,13 +260,17 @@ export async function syncMetaAccountsToSupabase(
   for (const page of oauthResult.pages) {
     if (!syncFacebook) continue;
     try {
-      // Upsert social account
+      const accountId = `meta_fb_${page.id}`;
+      const encryptedToken = TokenVault.encrypt(page.access_token);
+      const expiresAt = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(); // ~60 days
+
+      // Upsert social account WITH encrypted token
       const { error } = await serviceClient
         .from("social_accounts")
         .upsert(
           {
             workspace_id: workspaceId,
-            outstand_account_id: `meta_fb_${page.id}`, // prefix to avoid collisions
+            outstand_account_id: accountId,
             platform: "facebook",
             username: page.username || page.name,
             display_name: page.name,
@@ -259,6 +278,8 @@ export async function syncMetaAccountsToSupabase(
             followers_count: page.followers_count ?? 0,
             is_active: true,
             health_status: "healthy",
+            encrypted_access_token: encryptedToken,
+            token_expires_at: expiresAt,
             last_synced: new Date().toISOString(),
           },
           { onConflict: "workspace_id,outstand_account_id" }
@@ -270,24 +291,26 @@ export async function syncMetaAccountsToSupabase(
         continue;
       }
 
-      // Store page access token
+      // Also store in meta_tokens for legacy compatibility
+      const encryptedMetaToken = TokenVault.encrypt(page.access_token);
       await serviceClient
         .from("meta_tokens")
         .upsert(
           {
             workspace_id: workspaceId,
-            account_id: `meta_fb_${page.id}`,
+            account_id: accountId,
             platform: "facebook",
             page_id: page.id,
-            access_token: page.access_token,
-            user_access_token: oauthResult.userAccessToken,
+            access_token: encryptedMetaToken,
+            user_access_token: TokenVault.encrypt(oauthResult.userAccessToken),
             meta_user_id: oauthResult.userId,
-            expires_at: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(), // ~60 days
+            expires_at: expiresAt,
             updated_at: new Date().toISOString(),
           },
           { onConflict: "workspace_id,account_id" }
         );
 
+      console.log(`[meta/accounts] Successfully synced Facebook page: ${accountId}`);
       synced++;
     } catch (err) {
       console.error("[meta/accounts] FB page sync error:", err);
@@ -299,12 +322,17 @@ export async function syncMetaAccountsToSupabase(
   for (const ig of oauthResult.igAccounts) {
     if (!syncInstagram) continue;
     try {
+      const accountId = `meta_ig_${ig.id}`;
+      const encryptedPageToken = TokenVault.encrypt(ig.pageAccessToken);
+      const expiresAt = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString();
+
+      // Upsert social account WITH encrypted token
       const { error } = await serviceClient
         .from("social_accounts")
         .upsert(
           {
             workspace_id: workspaceId,
-            outstand_account_id: `meta_ig_${ig.id}`,
+            outstand_account_id: accountId,
             platform: "instagram",
             username: ig.username,
             display_name: ig.name,
@@ -312,6 +340,8 @@ export async function syncMetaAccountsToSupabase(
             followers_count: ig.followers_count,
             is_active: true,
             health_status: "healthy",
+            encrypted_access_token: encryptedPageToken, // IG API uses the page token
+            token_expires_at: expiresAt,
             last_synced: new Date().toISOString(),
           },
           { onConflict: "workspace_id,outstand_account_id" }
@@ -323,25 +353,27 @@ export async function syncMetaAccountsToSupabase(
         continue;
       }
 
-      // Store IG token (uses the page access token of the linked FB page)
+      // Also store in meta_tokens for legacy compatibility
+      const encryptedMetaToken = TokenVault.encrypt(ig.pageAccessToken);
       await serviceClient
         .from("meta_tokens")
         .upsert(
           {
             workspace_id: workspaceId,
-            account_id: `meta_ig_${ig.id}`,
+            account_id: accountId,
             platform: "instagram",
             page_id: ig.pageId,
             ig_user_id: ig.id,
-            access_token: ig.pageAccessToken, // IG API uses the page token
-            user_access_token: oauthResult.userAccessToken,
+            access_token: encryptedMetaToken,
+            user_access_token: TokenVault.encrypt(oauthResult.userAccessToken),
             meta_user_id: oauthResult.userId,
-            expires_at: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+            expires_at: expiresAt,
             updated_at: new Date().toISOString(),
           },
           { onConflict: "workspace_id,account_id" }
         );
 
+      console.log(`[meta/accounts] Successfully synced Instagram account: ${accountId}`);
       synced++;
     } catch (err) {
       console.error("[meta/accounts] IG account sync error:", err);
@@ -358,6 +390,7 @@ export async function getMetaAccessToken(
   workspaceId: string,
   accountId: string
 ): Promise<{ accessToken: string; pageId: string; igUserId?: string } | null> {
+  const { TokenVault } = await import("@/lib/services/TokenVault");
   const serviceClient = createServiceClient();
 
   const { data } = await serviceClient
@@ -381,11 +414,29 @@ export async function getMetaAccessToken(
     return null;
   }
 
-  return {
-    accessToken: data.access_token,
-    pageId: data.page_id,
-    igUserId: data.ig_user_id ?? undefined,
-  };
+  try {
+    // Decrypt the token (may be encrypted with TokenVault or plaintext for backwards compatibility)
+    let decryptedToken = data.access_token;
+    try {
+      decryptedToken = TokenVault.decrypt(data.access_token);
+    } catch {
+      // Token might be plaintext (old data), try using as-is
+      if (!data.access_token.includes(":")) {
+        decryptedToken = data.access_token;
+      } else {
+        throw new Error("Failed to decrypt token");
+      }
+    }
+
+    return {
+      accessToken: decryptedToken,
+      pageId: data.page_id,
+      igUserId: data.ig_user_id ?? undefined,
+    };
+  } catch (err) {
+    console.error(`[meta/accounts] Failed to decrypt token for ${accountId}:`, err);
+    return null;
+  }
 }
 
 // ── Disconnect a Meta account ───────────────────────────────

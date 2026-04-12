@@ -848,8 +848,11 @@ export default function ComposePage() {
 
   // Per-channel content mode
   const [perChannelMode, setPerChannelMode]       = useState(false);
-  const [activeEditTab, setActiveEditTab]         = useState<PlatformId>("twitter");
+  const [activeEditTab, setActiveEditTab]         = useState<string>("twitter");
   const [channelContent, setChannelContent]       = useState<Partial<Record<PlatformId, string>>>({});
+
+  // Per-account content mode
+  const [accountContent, setAccountContent]       = useState<Record<string, string>>({});
 
   // Media
   const [mediaFiles, setMediaFiles]               = useState<UploadedFile[]>([]);
@@ -935,6 +938,7 @@ export default function ComposePage() {
           accountIds: selectedAccountIds.length > 0 ? selectedAccountIds : undefined,
           content,
           channelContent: perChannelMode && Object.keys(channelContent).length > 0 ? channelContent : undefined,
+          accountContent: perChannelMode && Object.keys(accountContent).length > 0 ? accountContent : undefined,
           scheduleMode: "draft",
           mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined,
           firstComment: activePanel === "comment" && firstComment.trim() ? firstComment.trim() : undefined,
@@ -953,7 +957,7 @@ export default function ComposePage() {
     } catch {
       setAutoSaveStatus("idle");
     }
-  }, [workspace?.id, content, mediaFiles, selectedAccountIds, perChannelMode, channelContent, activePanel, firstComment, draftId, isSubmitting]);
+  }, [workspace?.id, content, mediaFiles, selectedAccountIds, perChannelMode, channelContent, accountContent, activePanel, firstComment, draftId, isSubmitting]);
 
   useEffect(() => {
     if (!content.trim() || isSubmitting) return;
@@ -1031,10 +1035,16 @@ export default function ComposePage() {
           setShowFirstComment(!!data.first_comment);
           setDraftId(data.id);
           
-          // Handle per-channel content if it exists (assuming column exists or will be added)
+          // Handle per-channel content if it exists
           if (data.channel_content && typeof data.channel_content === "object") {
             setChannelContent(data.channel_content);
             setPerChannelMode(Object.keys(data.channel_content).length > 0);
+          }
+
+          // Handle per-account content if it exists
+          if (data.account_content && typeof data.account_content === "object") {
+            setAccountContent(data.account_content);
+            setPerChannelMode(Object.keys(data.account_content).length > 0);
           }
 
           // Populate media
@@ -1136,7 +1146,7 @@ export default function ComposePage() {
     return perChannelMode ? (channelContent[id] ?? content) : content;
   }
 
-  const currentEditContent = perChannelMode ? getChannelContent(activeEditTab) : content;
+  const currentEditContent = perChannelMode ? (accountContent[activeEditTab] ?? content) : content;
   const activeMedia = mediaFiles.find(f => f.id === activeMediaId) ?? null;
 
   function charInfo(id: PlatformId) {
@@ -1359,7 +1369,7 @@ export default function ComposePage() {
 
   // ─── Content handlers ─────────────────────────────────────────
   function setCurrentContent(value: string) {
-    if (perChannelMode) setChannelContent(prev => ({ ...prev, [activeEditTab]: value }));
+    if (perChannelMode) setAccountContent(prev => ({ ...prev, [activeEditTab]: value }));
     else setContent(value);
   }
 
@@ -1403,10 +1413,16 @@ export default function ComposePage() {
 
   function togglePerChannel() {
     if (!perChannelMode) {
-      const seed: Partial<Record<PlatformId, string>> = {};
-      selectedPlatforms.forEach(id => { seed[id] = content; });
-      setChannelContent(seed);
-      setActiveEditTab(selectedPlatforms[0] ?? "twitter");
+      // Seed accountContent with shared content for each selected account
+      const seed: Record<string, string> = {};
+      (accounts ?? [])
+        .filter(a => selectedAccountIds.includes(a.id))
+        .forEach(a => { seed[a.id] = content; });
+      setAccountContent(seed);
+      // Set active tab to first selected account
+      const firstAccountId = (accounts ?? [])
+        .find(a => selectedAccountIds.includes(a.id))?.id;
+      setActiveEditTab(firstAccountId ?? "");
     }
     setPerChannelMode(p => !p);
   }
@@ -1450,9 +1466,12 @@ export default function ComposePage() {
     const storagePath = `${workspace.id}/${Date.now()}-${safeName}`;
 
     try {
-      // Get the current session access token (required for Storage RLS)
-      const { data: { session } } = await supabase.auth.getSession();
-      const accessToken = session?.access_token ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+      // Refresh session to get a fresh (non-expired) access token (required for Storage RLS)
+      const { data: refreshedData, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError || !refreshedData?.session) {
+        throw new Error("Session expired — please sign in again");
+      }
+      const accessToken = refreshedData.session.access_token;
 
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
@@ -1608,6 +1627,12 @@ export default function ComposePage() {
 
     setIsSubmitting(true);
     try {
+      // Refresh session to ensure we have a valid token for any uploads during submit
+      const { data: refreshedData, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError || !refreshedData?.session) {
+        throw new Error("Session expired — please sign in again");
+      }
+
       const mediaUrls = mediaFiles
         .filter(f => f.uploadStatus === "done" && f.supabaseUrl)
         .map(f => f.supabaseUrl);
@@ -1697,6 +1722,7 @@ export default function ComposePage() {
           accountIds: selectedAccountIds,
           content: isAllStoryMode ? "" : content,
           channelContent: perChannelMode && Object.keys(channelContent).length > 0 ? channelContent : undefined,
+          accountContent: perChannelMode && Object.keys(accountContent).length > 0 ? accountContent : undefined,
           scheduleMode,
           scheduledAt: scheduledDate || undefined,
           scheduledTime: scheduledTime || undefined,
@@ -1735,7 +1761,7 @@ export default function ComposePage() {
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
 
       mediaFiles.forEach(f => URL.revokeObjectURL(f.blobUrl));
-      setContent(""); setChannelContent({}); setMediaFiles([]); setActiveMediaId(null);
+      setContent(""); setChannelContent({}); setAccountContent({}); setMediaFiles([]); setActiveMediaId(null);
       setFirstComment(""); setShowFirstComment(false); setActivePanel("none");
       setYoutubeTitle(""); setTitleError(false); setPerChannelMode(false);
       setYtPrivacy("public"); setYtCategory("22"); setYtTags(""); setYtMadeForKids(false); setThumbnail(EMPTY_THUMBNAIL);
@@ -1789,7 +1815,7 @@ export default function ComposePage() {
         <div className="lg:col-span-3 space-y-3 sm:space-y-4">
 
           {/* ── Account + Format selector ── */}
-          <div className="rounded-2xl border border-gray-200/80 bg-white shadow-sm p-3 sm:p-4 space-y-3 sm:space-y-4">
+          <div className="rounded-2xl border border-border/50 bg-card shadow-sm p-3 sm:p-4 space-y-3 sm:space-y-4">
             {/* Account chips */}
             <div>
               <div className="flex items-center justify-between mb-3.5">
@@ -1815,7 +1841,7 @@ export default function ComposePage() {
                     <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-muted/40 hover:bg-muted/70 border border-border/40 hover:border-border/60 transition-all duration-200 hover:shadow-sm">
                       <Settings2 className="h-3 w-3 text-muted-foreground/70 hover:text-muted-foreground" />
                       <span className="text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors">
-                        {perChannelMode ? "Content is split" : "Customize per channel"}
+                        {perChannelMode ? "Content is split" : "Customize per account"}
                       </span>
                     </div>
                   </button>
@@ -1963,19 +1989,19 @@ export default function ComposePage() {
                   <Sheet open={mobileAccountsExpanded} onOpenChange={setMobileAccountsExpanded}>
                     <SheetContent
                       side="bottom"
-                      className="h-[85vh] sm:h-[600px] sm:max-w-3xl sm:inset-x-0 sm:mx-auto sm:mb-[5vh] sm:rounded-2xl p-0 flex flex-col [&>button]:hidden overflow-hidden border-none shadow-2xl"
+                      className="h-[85vh] sm:h-[450px] sm:max-w-xl sm:inset-x-0 sm:mx-auto sm:mb-[10vh] sm:rounded-xl p-0 flex flex-col [&>button]:hidden overflow-hidden border-none shadow-xl"
                     >
                       {/* Header with selection count */}
-                      <div className="sticky top-0 flex items-center justify-between px-4 sm:px-6 py-3 border-b border-slate-200/60 shrink-0 bg-gradient-to-b from-white to-slate-50/50 backdrop-blur-md z-20">
+                      <div className="sticky top-0 flex items-center justify-between px-4 sm:px-6 py-3 border-b border-border/50 shrink-0 bg-card backdrop-blur-md z-20">
                         <button
                           onClick={() => setMobileAccountsExpanded(false)}
-                          className="flex items-center gap-1.5 text-slate-600 hover:text-slate-900 transition-colors sm:hidden p-1"
+                          className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors sm:hidden p-1"
                           aria-label="Back"
                         >
                           <ArrowLeft className="h-5 w-5" />
                         </button>
                         <div className="flex items-center gap-2.5">
-                          <h2 className="text-base font-bold text-slate-900 tracking-tight">Select Channels</h2>
+                          <h2 className="text-base font-bold text-foreground tracking-tight">Select Channels</h2>
                           {selectedAccountIds.length > 0 && (
                             <span className="flex h-6 min-w-[24px] items-center justify-center px-1.5 text-xs font-bold bg-primary text-white rounded-full shadow-md shadow-primary/20">
                               {selectedAccountIds.length}
@@ -1983,7 +2009,7 @@ export default function ComposePage() {
                           )}
                         </div>
                         <SheetClose asChild>
-                          <button className="text-xs font-bold text-primary hover:text-primary/90 transition-all px-3 py-1.5 sm:bg-primary/10 sm:px-4 sm:py-2 sm:rounded-lg hover:sm:bg-primary/15 rounded">
+                          <button className="text-xs font-bold text-foreground hover:text-foreground transition-all px-3 py-1.5 sm:bg-muted/50 sm:px-4 sm:py-2 sm:rounded-lg hover:sm:bg-muted rounded">
                             Done
                           </button>
                         </SheetClose>
@@ -1992,7 +2018,7 @@ export default function ComposePage() {
 
                       {/* Select All / Clear All Button */}
                       {filteredAccounts.length > 0 && (
-                        <div className="sticky top-[53px] px-4 sm:px-6 py-2 shrink-0 flex justify-end bg-gradient-to-r from-slate-50/50 to-blue-50/30 border-b border-border/20 z-20">
+                        <div className="sticky top-[53px] px-4 sm:px-6 py-2 shrink-0 flex justify-end bg-muted/30 border-b border-border/20 z-20">
                           <button
                             onClick={() => {
                               if (selectedAccountIds.length === filteredAccounts.length) {
@@ -2005,7 +2031,7 @@ export default function ComposePage() {
                                 setSelectedAccountIds(Array.from(newIds));
                               }
                             }}
-                            className="text-xs font-semibold text-primary hover:text-primary/90 transition-colors flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-primary/5"
+                            className="text-xs font-semibold text-foreground hover:text-foreground transition-colors flex items-center gap-1.5 px-3 py-1 rounded-full hover:bg-muted/50"
                           >
                             {selectedAccountIds.length === filteredAccounts.length && filteredAccounts.length > 0 ? (
                               <>
@@ -2023,19 +2049,19 @@ export default function ComposePage() {
                       )}
 
                       {/* Account List */}
-                      <div className="flex-1 overflow-y-auto bg-white scrollbar-thin scrollbar-thumb-slate-200">
+                      <div className="flex-1 overflow-y-auto bg-card scrollbar-thin scrollbar-thumb-border">
                         {filteredAccounts.length === 0 ? (
-                          <div className="flex flex-col items-center justify-center min-h-[320px] text-center px-6 py-12 bg-gradient-to-b from-white to-slate-50/30">
-                            <div className="h-20 w-20 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center mb-5 shadow-sm">
-                              <Search className="h-10 w-10 text-slate-400" />
+                          <div className="flex flex-col items-center justify-center min-h-[320px] text-center px-6 py-12 bg-gradient-to-b from-card to-muted/30">
+                            <div className="h-20 w-20 rounded-full bg-gradient-to-br from-muted/80 to-muted flex items-center justify-center mb-5 shadow-sm">
+                              <Search className="h-10 w-10 text-muted-foreground/40" />
                             </div>
-                            <h3 className="text-base font-bold text-slate-900 mb-2">No channels found</h3>
-                            <p className="text-sm text-slate-600 max-w-xs leading-relaxed">
+                            <h3 className="text-base font-bold text-foreground mb-2">No channels found</h3>
+                            <p className="text-sm text-muted-foreground/70 max-w-xs leading-relaxed">
                               Connect social media accounts in your workspace settings to start publishing.
                             </p>
                           </div>
                         ) : (
-                          <div className="flex flex-col divide-y divide-slate-200/50">
+                          <div className="flex flex-col divide-y divide-border/30">
                             {filteredAccounts.map(account => {
                               const sel = selectedAccountIds.includes(account.id);
                               const meta = PLATFORM_META[account.platform];
@@ -2049,16 +2075,16 @@ export default function ComposePage() {
                                   className={cn(
                                     "flex items-center gap-3 px-4 py-2.5 transition-all duration-200 text-left",
                                     sel
-                                      ? "bg-blue-50/60 border-l-3 border-primary hover:bg-blue-50/80"
-                                      : "bg-white hover:bg-slate-50/80"
+                                      ? "bg-muted/50 border-l-3 border-primary hover:bg-muted"
+                                      : "bg-card hover:bg-muted/50"
                                   )}
                                 >
                                   {/* Checkbox */}
                                   <div className={cn(
                                     "h-5 w-5 rounded-full flex items-center justify-center shrink-0 transition-all duration-300 flex-shrink-0",
                                     sel
-                                      ? "bg-primary text-white shadow-md shadow-primary/30"
-                                      : "border-2 border-slate-300 bg-white hover:border-primary/40"
+                                      ? "bg-primary text-white shadow-md shadow-slate-700/30"
+                                      : "border-2 border-primary/50 bg-card hover:border-primary"
                                   )}>
                                     {sel && <Check className="h-3 w-3" strokeWidth={3} />}
                                   </div>
@@ -2071,13 +2097,13 @@ export default function ComposePage() {
                                         alt={displayName}
                                         className={cn(
                                           "h-10 w-10 rounded-full object-cover border transition-all",
-                                          sel ? "border-primary/60 ring-1.5 ring-primary/20" : "border-slate-200"
+                                          sel ? "border-primary ring-1.5 ring-primary/30" : "border-border/50"
                                         )}
                                       />
                                     ) : (
                                       <div className={cn(
                                         "h-10 w-10 rounded-full flex items-center justify-center text-xs font-bold border transition-all",
-                                        sel ? "border-primary/60 bg-primary/15 text-primary" : "border-slate-200 bg-slate-100 text-slate-600"
+                                        sel ? "border-slate-400 bg-muted text-foreground" : "border-border/50 bg-muted/70 text-muted-foreground"
                                       )}>
                                         {displayName.charAt(0).toUpperCase()}
                                       </div>
@@ -2095,13 +2121,13 @@ export default function ComposePage() {
                                   <div className="flex-1 min-w-0">
                                     <p className={cn(
                                       "text-sm font-semibold truncate transition-colors",
-                                      sel ? "text-primary" : "text-slate-900"
+                                      sel ? "text-foreground" : "text-foreground"
                                     )}>{displayName}</p>
                                     <span className={cn(
                                       "text-[11px] font-semibold uppercase tracking-wide inline-flex items-center gap-1 mt-0.5",
                                       sel
-                                        ? "text-primary"
-                                        : "text-slate-500"
+                                        ? "text-muted-foreground/70"
+                                        : "text-muted-foreground/60"
                                     )}>
                                       <PIcon className="h-2.5 w-2.5" />
                                       {accountType}
@@ -2204,30 +2230,40 @@ export default function ComposePage() {
 
 
           {/* ── Content editor ── */}
-          <div className="rounded-2xl border border-gray-200/80 bg-white shadow-sm overflow-hidden focus-within:ring-2 focus-within:ring-violet-500/20 focus-within:border-violet-300 transition-all">
-            {/* Per-channel tabs */}
+          <div className="rounded-2xl border border-border/50 bg-card shadow-sm overflow-hidden focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/40 transition-all">
+            {/* Per-account tabs */}
             {perChannelMode && (
-              <div className="flex items-center gap-0.5 px-2 sm:px-3 pt-1.5 sm:pt-2 border-b border-gray-200/50 overflow-x-auto">
-                {selectedPlatforms.map(id => {
-                  const p = PLATFORMS.find(pl => pl.id === id)!;
-                  const isCustomized = channelContent[id] !== undefined && channelContent[id] !== content;
-                  return (
-                    <button
-                      key={id}
-                      onClick={() => setActiveEditTab(id)}
-                      className={cn(
-                        "flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-xs font-medium shrink-0 transition-all border-b-2 -mb-px",
-                        activeEditTab === id
-                          ? "border-foreground text-foreground bg-muted/30"
-                          : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/20"
-                      )}
-                    >
-                      <p.icon className={cn("h-3 w-3", p.color)} />
-                      {p.label.split(" ")[0]}
-                      {isCustomized && <span className="h-1.5 w-1.5 rounded-full bg-amber-400" title="Customized" />}
-                    </button>
-                  );
-                })}
+              <div className="flex items-center gap-0.5 px-2 sm:px-3 pt-1.5 sm:pt-2 border-b border-border/50 overflow-x-auto">
+                {(accounts ?? [])
+                  .filter(a => selectedAccountIds.includes(a.id))
+                  .map(account => {
+                    const PlatformIcon = PLATFORMS.find(p => p.id === account.platform)?.icon;
+                    const isCustomized = accountContent[account.id] !== undefined && accountContent[account.id] !== content;
+                    return (
+                      <button
+                        key={account.id}
+                        onClick={() => setActiveEditTab(account.id)}
+                        className={cn(
+                          "flex items-center gap-1.5 px-3 py-2 rounded-t-lg text-xs font-medium shrink-0 transition-all border-b-2 -mb-px",
+                          activeEditTab === account.id
+                            ? "border-foreground text-foreground bg-muted/30"
+                            : "border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/20"
+                        )}
+                      >
+                        {/* Account avatar */}
+                        <div className="h-5 w-5 rounded-full overflow-hidden bg-muted shrink-0 flex items-center justify-center">
+                          {account.profile_picture ? (
+                            <img src={account.profile_picture} alt={account.username} className="h-full w-full object-cover" />
+                          ) : (
+                            PlatformIcon && <PlatformIcon className="h-3 w-3" />
+                          )}
+                        </div>
+                        {/* Account username */}
+                        <span className="truncate max-w-[120px]">{account.username || account.display_name}</span>
+                        {isCustomized && <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" title="Customized" />}
+                      </button>
+                    );
+                  })}
               </div>
             )}
 
@@ -2426,7 +2462,7 @@ export default function ComposePage() {
 
           {/* ── Media section ── */}
           {mediaFiles.length > 0 ? (
-            <div className="rounded-2xl border border-gray-200/80 bg-white shadow-sm p-4 space-y-4 mb-16 lg:mb-0">
+            <div className="rounded-2xl border border-border/50 bg-card shadow-sm p-4 space-y-4 mb-16 lg:mb-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-semibold text-foreground">Media ({mediaFiles.length})</p>
@@ -2644,11 +2680,11 @@ export default function ComposePage() {
 
           {/* ── AI Panel ── */}
           {activePanel === "ai" && (
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-gradient-to-br from-slate-50 dark:from-slate-900 to-transparent p-4 space-y-4 mb-16 lg:mb-0">
+            <div className="rounded-2xl border border-border/50 dark:border-slate-700 bg-gradient-to-br from-slate-50 dark:from-slate-900 to-transparent p-4 space-y-4 mb-16 lg:mb-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-200 dark:bg-slate-800">
-                    <Sparkles className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                    <Sparkles className="h-4 w-4 text-muted-foreground/70 dark:text-muted-foreground/40" />
                   </div>
                   <p className="text-sm font-semibold text-foreground">AI Caption Generator</p>
                 </div>
@@ -2684,7 +2720,7 @@ export default function ComposePage() {
                       <button key={t.id} onClick={() => setAiTone(t.id)}
                         className={cn("flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-all",
                           aiTone === t.id
-                            ? "border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white"
+                            ? "border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-foreground dark:text-white"
                             : "border-border/60 text-muted-foreground hover:border-border hover:text-foreground"
                         )}>
                         <span>{t.emoji}</span> {t.label}
@@ -2696,7 +2732,7 @@ export default function ComposePage() {
                 <Button
                   onClick={handleGenerateCaptions}
                   disabled={isGeneratingCaptions}
-                  className="w-full h-9 bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-100 text-white dark:text-slate-900 text-sm font-medium gap-2"
+                  className="w-full h-9 bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-100 text-white dark:text-foreground text-sm font-medium gap-2"
                 >
                   {isGeneratingCaptions
                     ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating…</>
@@ -2717,7 +2753,7 @@ export default function ComposePage() {
                       className="group w-full text-left rounded-lg border border-border/40 bg-card/60 hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800 px-3 py-2.5 text-sm text-foreground transition-all relative">
                       <p className="pr-8">{caption}</p>
                       <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-400">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-slate-200 dark:bg-slate-700 text-muted-foreground/70 dark:text-muted-foreground/40">
                           <ArrowRight className="h-3 w-3" />
                         </span>
                       </div>
@@ -2784,11 +2820,11 @@ export default function ComposePage() {
 
           {/* ── Hashtag Panel ── */}
           {activePanel === "hashtags" && (
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-gradient-to-br from-slate-50 dark:from-slate-900 to-transparent p-4 space-y-3 mb-16 lg:mb-0">
+            <div className="rounded-2xl border border-border/50 dark:border-slate-700 bg-gradient-to-br from-slate-50 dark:from-slate-900 to-transparent p-4 space-y-3 mb-16 lg:mb-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-200 dark:bg-slate-800">
-                    <Hash className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                    <Hash className="h-4 w-4 text-muted-foreground/70 dark:text-muted-foreground/40" />
                   </div>
                   <p className="text-sm font-semibold text-foreground">AI Hashtags</p>
                 </div>
@@ -2813,7 +2849,7 @@ export default function ComposePage() {
               <Button
                 onClick={handleGenerateHashtags}
                 disabled={isGeneratingHashtags || !content.trim()}
-                className="w-full h-9 bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-100 text-white dark:text-slate-900 text-sm font-medium gap-2"
+                className="w-full h-9 bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-100 text-white dark:text-foreground text-sm font-medium gap-2"
               >
                 {isGeneratingHashtags
                   ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Generating for {selectedPlatforms.length} platform{selectedPlatforms.length > 1 ? "s" : ""}…</>
@@ -2896,7 +2932,7 @@ export default function ComposePage() {
 
           {/* ── Emoji Panel ── */}
           {activePanel === "emojis" && (
-            <div className="rounded-2xl border border-gray-200/80 bg-white shadow-sm p-4 mb-16 lg:mb-0">
+            <div className="rounded-2xl border border-border/50 bg-card shadow-sm p-4 mb-16 lg:mb-0">
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-semibold text-foreground">Emojis</p>
                 <button onClick={() => setActivePanel("none")} className="p-1 rounded-md hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors"><X className="h-4 w-4" /></button>
@@ -3080,7 +3116,7 @@ export default function ComposePage() {
           )}
 
           {/* ── Schedule ── */}
-          <div className="rounded-2xl border border-gray-200/80 bg-white shadow-sm p-4 mb-16 lg:mb-0">
+          <div className="rounded-2xl border border-border/50 bg-card shadow-sm p-4 mb-16 lg:mb-0">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">When to publish</p>
             <div className="grid grid-cols-3 gap-1 bg-muted p-1 rounded-xl mb-3">
               {(["now", "schedule", "draft"] as const).map(mode => (

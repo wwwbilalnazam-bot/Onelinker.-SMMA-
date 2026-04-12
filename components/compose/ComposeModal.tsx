@@ -55,7 +55,7 @@ export const ComposeModal = ({ children }: { children: React.ReactNode }) => {
       role="dialog"
       aria-modal="true"
     >
-      <div className="relative w-full h-full md:w-full md:h-auto md:max-w-6xl md:max-h-[90vh] bg-background md:rounded-2xl md:shadow-2xl md:border-2 md:border-slate-200 dark:md:border-slate-700 overflow-y-auto md:animate-in md:fade-in-0 md:zoom-in-95 md:duration-300 flex flex-col">
+      <div className="relative w-full h-full md:w-full md:h-auto md:max-w-6xl md:max-h-[90vh] bg-background md:rounded-2xl md:shadow-2xl md:border md:border-border/50 overflow-y-auto md:animate-in md:fade-in-0 md:zoom-in-95 md:duration-300 flex flex-col">
         {/* Close button */}
         <button
           onClick={handleClose}

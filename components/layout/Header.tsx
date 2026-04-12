@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Bell,
-  Search,
   Settings,
   LogOut,
   User,
@@ -71,21 +70,6 @@ export function Header({ user }: HeaderProps) {
 
       {/* Mobile hamburger */}
       <MobileSidebar />
-
-      {/* Search */}
-      <div className="flex-1 max-w-xs hidden sm:block">
-        <div className="relative group">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50 group-focus-within:text-primary transition-colors duration-150" />
-          <input
-            type="text"
-            placeholder="Search posts, accounts…"
-            className="w-full h-9 rounded-lg border border-border/50 bg-muted/30 pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 focus:bg-card transition-all duration-150"
-          />
-          <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 hidden lg:inline-flex h-5 items-center gap-0.5 rounded border border-border/60 bg-muted/60 px-1.5 font-mono text-[10px] text-muted-foreground/60">
-            ⌘K
-          </kbd>
-        </div>
-      </div>
 
       {/* Right actions */}
       <div className="flex items-center gap-1 ml-auto">

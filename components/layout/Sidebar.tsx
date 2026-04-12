@@ -152,9 +152,9 @@ export function Sidebar() {
           collapsed && "justify-center px-0"
         )}
       >
-        <Image src="/logo.png" alt="Onelinker" width={28} height={28} className="shrink-0 rounded-lg shadow-glow-sm" />
+        <Image src="/logo.png" alt="Onelinker" width={28} height={28} className="shrink-0 rounded-lg" />
         {!collapsed && (
-          <span className="font-bold text-gradient text-sm tracking-tight">
+          <span className="font-bold text-foreground text-sm tracking-tight">
             Onelinker
           </span>
         )}
@@ -253,8 +253,8 @@ export function MobileSidebar() {
 
           {/* Logo */}
           <div className="flex h-14 items-center gap-2.5 px-4 border-b border-border/40">
-            <Image src="/logo.png" alt="Onelinker" width={28} height={28} className="shrink-0 rounded-lg shadow-glow-sm" />
-            <span className="font-bold text-gradient text-sm tracking-tight">
+            <Image src="/logo.png" alt="Onelinker" width={28} height={28} className="shrink-0 rounded-lg" />
+            <span className="font-bold text-foreground text-sm tracking-tight">
               Onelinker
             </span>
           </div>

@@ -31,6 +31,10 @@ import {
   createFacebookPost,
   createInstagramPost,
 } from "@/lib/meta/posts";
+import {
+  fetchFacebookPostMetrics,
+  fetchInstagramMediaMetrics,
+} from "@/lib/meta/analytics";
 import { createServiceClient } from "@/lib/supabase/server";
 import { createClient } from "@/lib/supabase/server";
 
@@ -324,15 +328,43 @@ export class MetaDirectProvider implements SocialProvider {
       .eq("outstand_post_id", params.providerPostId);
   }
 
-  // ── Analytics (stub) ───────────────────────────────────
-
   async getPostAnalytics(params: {
     providerPostId: string;
     apiKey?: string | null;
   }): Promise<PostAnalytics> {
-    // TODO: Implement via Graph API /{post-id}/insights
-    void params;
-    return { likes: 0, comments: 0, shares: 0, reach: 0, impressions: 0, clicks: 0 };
+    const { providerPostId } = params;
+    
+    // providerPostId is like "meta_ID1,ID2,..."
+    const rawId = providerPostId.replace("meta_", "").split(",")[0]; // Just get the first one for simplicity
+    if (!rawId) return { likes: 0, comments: 0, shares: 0, reach: 0, impressions: 0, clicks: 0 };
+
+    // We need the workspaceId and the resolved platform to get the token.
+    // Unfortunately the provider interface doesn't pass workspaceId to getPostAnalytics.
+    // We'll have to look up the post in our DB to get the workspaceId and specific account.
+    const serviceClient = createServiceClient();
+    const { data: post } = await serviceClient
+      .from("posts")
+      .select("workspace_id, account_ids, platforms")
+      .eq("outstand_post_id", providerPostId)
+      .single();
+
+    if (!post || !post.workspace_id || !post.account_ids?.[0]) {
+      return { likes: 0, comments: 0, shares: 0, reach: 0, impressions: 0, clicks: 0 };
+    }
+
+    // Determine platform
+    const platform = post.platforms?.[0] as "facebook" | "instagram";
+    const accountId = post.account_ids[0]; // outstand_account_id
+
+    // Fetch token
+    const tokenData = await getMetaAccessToken(post.workspace_id, accountId);
+    if (!tokenData) return { likes: 0, comments: 0, shares: 0, reach: 0, impressions: 0, clicks: 0 };
+
+    if (platform === "facebook") {
+      return fetchFacebookPostMetrics(rawId, tokenData.accessToken);
+    } else {
+      return fetchInstagramMediaMetrics(rawId, tokenData.accessToken);
+    }
   }
 
   // ── Webhooks ───────────────────────────────────────────

@@ -62,76 +62,77 @@ export default function ForgotPasswordPage() {
   if (emailSent) {
     return (
       <AnimatedSection animation="fade-up" delay={100}>
-      <div className="w-full max-w-[420px] space-y-6">
-        {/* Success icon */}
-        <div className="relative w-fit">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
-            <Mail className="h-7 w-7 text-emerald-500" />
-          </div>
-          <div className="absolute -top-1.5 -right-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500 shadow-md animate-scale-in">
-            <CheckCircle className="h-4 w-4 text-white" />
-          </div>
-        </div>
+        <div className="w-full max-w-[440px] space-y-8 bg-card/10 p-2 rounded-[2.5rem]">
+          <div className="bg-background/40 backdrop-blur-2xl border border-border/10 rounded-[2.2rem] p-8 sm:p-10 shadow-2xl space-y-8">
+            {/* Success icon */}
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="relative">
+                <div className="flex h-20 w-20 items-center justify-center rounded-[2rem] bg-emerald-500/10 border border-emerald-500/20 shadow-inner">
+                  <Mail className="h-9 w-9 text-emerald-500" />
+                </div>
+                <div className="absolute -top-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 shadow-lg border-2 border-background animate-scale-in">
+                  <CheckCircle className="h-4 w-4 text-white" />
+                </div>
+              </div>
 
-        <div className="space-y-2">
-          <h1 className="text-2xl font-extrabold text-foreground tracking-tight">
-            Check your inbox
-          </h1>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            We&apos;ve sent a password reset link to{" "}
-            <span className="font-semibold text-foreground break-all">{sentToEmail}</span>
-          </p>
-        </div>
+              <div className="space-y-3">
+                <h1 className="text-3xl font-medium text-foreground tracking-tight font-heading">
+                  Check your inbox
+                </h1>
+                <p className="text-base text-muted-foreground font-medium leading-relaxed">
+                  We&apos;ve sent a password reset link to <br />
+                  <span className="text-foreground font-bold break-all">{sentToEmail}</span>
+                </p>
+              </div>
+            </div>
 
-        {/* Tips card */}
-        <div className="rounded-xl bg-amber-500/5 border border-amber-500/15 p-4 space-y-2.5">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-            <p className="text-xs font-semibold text-foreground">Didn&apos;t receive it?</p>
-          </div>
-          <ul className="space-y-1.5 text-xs text-muted-foreground">
-            <li className="flex items-start gap-2">
-              <span className="text-muted-foreground/40 mt-0.5">1.</span>
-              Check your spam or junk folder
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-muted-foreground/40 mt-0.5">2.</span>
-              Make sure you entered the correct email
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-muted-foreground/40 mt-0.5">3.</span>
-              The link expires in 1 hour
-            </li>
-          </ul>
-        </div>
+            {/* Tips card */}
+            <div className="rounded-[1.5rem] bg-amber-500/[0.03] border border-amber-500/10 p-5 space-y-4">
+              <div className="flex items-center gap-2.5">
+                <div className="h-7 w-7 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
+                </div>
+                <p className="text-sm font-bold text-foreground">Didn&apos;t receive it?</p>
+              </div>
+              <div className="space-y-3">
+                {[
+                  "Check your spam or junk folder",
+                  "Verified correct email address",
+                  "Wait a few minutes (up to 5m)",
+                ].map((tip, i) => (
+                  <div key={tip} className="flex items-center gap-3 text-xs font-semibold text-muted-foreground">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-500/30" />
+                    {tip}
+                  </div>
+                ))}
+              </div>
+            </div>
 
-        <div className="space-y-2.5">
-          {/* Quick-open email provider */}
-          {emailProvider && (
-            <a href={emailProvider.url} target="_blank" rel="noopener noreferrer">
+            <div className="space-y-4 pt-2">
+              {emailProvider && (
+                <a href={emailProvider.url} target="_blank" rel="noopener noreferrer" className="block">
+                  <Button className="w-full h-13 rounded-2xl bg-foreground text-background hover:bg-foreground/90 font-bold text-base shadow-xl transition-all active:scale-[0.98]">
+                    <ExternalLink className="h-5 w-5 mr-2" />
+                    {emailProvider.name}
+                  </Button>
+                </a>
+              )}
               <Button
-                className="w-full h-11 rounded-xl bg-primary hover:bg-primary/90 text-white font-semibold text-sm shadow-glow-sm hover:shadow-glow transition-all"
+                variant="outline"
+                className="w-full h-13 rounded-2xl border-border/40 font-bold text-sm bg-accent/20 hover:bg-accent/40"
+                onClick={() => setEmailSent(false)}
               >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                {emailProvider.name}
+                Try a different email
               </Button>
-            </a>
-          )}
-          <Button
-            variant="outline"
-            className="w-full h-11 rounded-xl"
-            onClick={() => setEmailSent(false)}
-          >
-            Try a different email
-          </Button>
-          <Link href="/login" className="block">
-            <Button variant="ghost" className="w-full h-10 text-muted-foreground text-sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to sign in
-            </Button>
-          </Link>
+              <Link href="/login" className="block text-center">
+                <button className="text-sm font-bold text-muted-foreground hover:text-foreground transition-all flex items-center gap-2 mx-auto">
+                  <ArrowLeft className="h-4 w-4" />
+                  Back to Sign In
+                </button>
+              </Link>
+            </div>
+          </div>
         </div>
-      </div>
       </AnimatedSection>
     );
   }
@@ -140,72 +141,78 @@ export default function ForgotPasswordPage() {
 
   return (
     <AnimatedSection animation="fade-up" delay={100}>
-    <div className="w-full max-w-[420px] space-y-6">
-      {/* Header */}
-      <div className="space-y-4">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/5 border border-primary/10">
-          <KeyRound className="h-6 w-6 text-primary" />
-        </div>
-        <div className="space-y-2">
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
-            Reset password
-          </h1>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            Enter your email and we&apos;ll send you a link to reset your password.
-          </p>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-        <div className="space-y-2">
-          <Label htmlFor="email" className="text-sm font-medium text-foreground">
-            Email
-          </Label>
-          <div className="relative">
-            <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
-            <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              autoFocus
-              placeholder="you@example.com"
-              className={cn(
-                "pl-10 h-12 rounded-xl bg-background border-border/60 text-sm focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary/40",
-                errors.email && "border-destructive focus-visible:ring-destructive/20"
-              )}
-              {...register("email")}
-            />
+      <div className="w-full max-w-[440px] space-y-8 bg-card/10 p-2 rounded-[2.5rem]">
+        <div className="bg-background/40 backdrop-blur-2xl border border-border/10 rounded-[2.2rem] p-8 sm:p-10 shadow-2xl space-y-8">
+          {/* Header */}
+          <div className="space-y-5">
+            <div className="flex h-16 w-16 items-center justify-center rounded-[1.5rem] bg-primary/5 border border-primary/10 shadow-inner">
+              <KeyRound className="h-7 w-7 text-primary" />
+            </div>
+            <div className="space-y-3">
+              <h1 className="text-3xl sm:text-4xl font-medium text-foreground tracking-tight font-heading">
+                Reset password
+              </h1>
+              <p className="text-base text-muted-foreground font-medium leading-relaxed">
+                Enter your email address to receive a secure reset link.
+              </p>
+            </div>
           </div>
-          {errors.email && (
-            <p className="text-xs text-destructive">{errors.email.message}</p>
-          )}
+
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
+            <div className="space-y-2.5">
+              <Label htmlFor="email" className="text-sm font-bold text-foreground ml-1">
+                Email Address
+              </Label>
+              <div className="relative group">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  autoFocus
+                  placeholder="name@company.com"
+                  className={cn(
+                    "pl-11 h-13 rounded-2xl bg-muted/20 border-border/30 text-sm font-medium focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:border-primary/30 transition-all",
+                    errors.email && "border-destructive/50 focus-visible:ring-destructive/10"
+                  )}
+                  {...register("email")}
+                />
+              </div>
+              {errors.email && (
+                <p className="text-xs font-semibold text-destructive/80 ml-1">{errors.email.message}</p>
+              )}
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full h-13 bg-foreground text-background hover:bg-foreground/90 font-bold rounded-2xl text-base shadow-xl transition-all active:scale-[0.98] group"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <Loader2 className="h-5 w-5 animate-spin mr-2" />
+              ) : (
+                <span className="flex items-center gap-2">
+                  Send Reset Link <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+                </span>
+              )}
+            </Button>
+          </form>
+
+          <div className="relative">
+            <Separator className="bg-border/20" />
+          </div>
+
+          <div className="text-center pt-2">
+            <Link
+              href="/login"
+              className="group inline-flex items-center gap-2.5 text-sm font-bold text-muted-foreground hover:text-foreground transition-all"
+            >
+              <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+              Back to Sign In
+            </Link>
+          </div>
         </div>
-
-        <Button
-          type="submit"
-          className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold rounded-xl text-sm shadow-glow-sm hover:shadow-glow transition-all"
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          ) : null}
-          Send reset link
-          <ArrowRight className="h-4 w-4 ml-2" />
-        </Button>
-      </form>
-
-      <div className="h-px bg-border/30" />
-
-      <div className="text-center">
-        <Link
-          href="/login"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to sign in
-        </Link>
       </div>
-    </div>
     </AnimatedSection>
   );
 }

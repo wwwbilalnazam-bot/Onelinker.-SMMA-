@@ -57,14 +57,29 @@ export default function ContactPage() {
   const [submitted, setSubmitted] = useState(false);
   const [sending, setSending] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSending(true);
-    // Simulate submission
-    setTimeout(() => {
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+
+      if (response.ok) {
+        setSubmitted(true);
+        setFormData({ name: "", email: "", topic: "", message: "" });
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error || "Failed to send message"}`);
+      }
+    } catch (err) {
+      alert("Failed to send message. Please try again.");
+      console.error("Contact form error:", err);
+    } finally {
       setSending(false);
-      setSubmitted(true);
-    }, 1500);
+    }
   }
 
   return (
@@ -143,8 +158,9 @@ export default function ContactPage() {
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="grid sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-xs font-semibold text-foreground mb-1.5 block">Name</label>
+                      <label htmlFor="contact-name" className="text-xs font-semibold text-foreground mb-1.5 block">Name</label>
                       <input
+                        id="contact-name"
                         required
                         type="text"
                         value={formData.name}
@@ -154,8 +170,9 @@ export default function ContactPage() {
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-foreground mb-1.5 block">Email</label>
+                      <label htmlFor="contact-email" className="text-xs font-semibold text-foreground mb-1.5 block">Email</label>
                       <input
+                        id="contact-email"
                         required
                         type="email"
                         value={formData.email}
@@ -167,8 +184,9 @@ export default function ContactPage() {
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-foreground mb-1.5 block">Topic</label>
+                    <label htmlFor="contact-topic" className="text-xs font-semibold text-foreground mb-1.5 block">Topic</label>
                     <select
+                      id="contact-topic"
                       required
                       value={formData.topic}
                       onChange={(e) => setFormData({ ...formData, topic: e.target.value })}
@@ -182,8 +200,9 @@ export default function ContactPage() {
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-foreground mb-1.5 block">Message</label>
+                    <label htmlFor="contact-message" className="text-xs font-semibold text-foreground mb-1.5 block">Message</label>
                     <textarea
+                      id="contact-message"
                       required
                       rows={5}
                       value={formData.message}

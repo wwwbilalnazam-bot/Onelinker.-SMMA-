@@ -128,7 +128,6 @@ function SignupContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [isFacebookLoading, setIsFacebookLoading] = useState(false);
   const [passwordValue, setPasswordValue] = useState("");
   const supabase = createClient();
   const passwordStrength = getPasswordStrength(passwordValue);
@@ -196,279 +195,227 @@ function SignupContent() {
     }
   }
 
-  // ── Meta (Facebook) OAuth ───────────────────────────────────
-
-  async function signUpWithMeta() {
-    setIsFacebookLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "facebook",
-      options: {
-        redirectTo: `${window.location.origin}/auth/meta/callback?next=${encodeURIComponent(nextUrl)}&platform=facebook`,
-      },
-    });
-
-    if (error) {
-      toast.error("Failed to sign up with Facebook. Please try again.");
-      setIsFacebookLoading(false);
-    }
-  }
 
   return (
     <AnimatedSection animation="fade-up" delay={100}>
-    <div className="w-full max-w-[420px] space-y-6">
-      {/* Header */}
-      <div className="space-y-2">
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
-          Create your account
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Get started free — no credit card required
-        </p>
-      </div>
-
-      {/* Free plan highlights */}
-      <div className="rounded-xl bg-gradient-to-r from-primary/5 to-violet-500/5 border border-primary/10 p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10">
-            <Sparkles className="h-3 w-3 text-primary" />
-          </div>
-          <span className="text-xs font-semibold text-foreground">Free plan includes:</span>
-        </div>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-          {[
-            { text: "3 social channels", icon: CheckCircle },
-            { text: "20 posts/month", icon: CheckCircle },
-            { text: "3 AI generations", icon: CheckCircle },
-            { text: "Basic analytics", icon: CheckCircle },
-          ].map((item) => (
-            <div key={item.text} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <item.icon className="h-3 w-3 text-emerald-500 shrink-0" />
-              {item.text}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Google OAuth */}
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full h-12 gap-3 text-sm font-medium border-border/80 hover:bg-accent/60 rounded-xl transition-all hover:shadow-sm"
-        onClick={signUpWithGoogle}
-        disabled={isGoogleLoading || isSubmitting || isFacebookLoading}
-      >
-        {isGoogleLoading ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          <GoogleIcon />
-        )}
-        Continue with Google
-      </Button>
-
-      {/* Meta (Facebook) OAuth */}
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full h-12 gap-3 text-sm font-medium border-border/80 hover:bg-accent/60 rounded-xl transition-all hover:shadow-sm"
-        onClick={signUpWithMeta}
-        disabled={isFacebookLoading || isSubmitting || isGoogleLoading}
-      >
-        {isFacebookLoading ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          <FacebookIcon />
-        )}
-        Continue with Facebook
-      </Button>
-
-      {/* Divider */}
-      <div className="relative">
-        <Separator className="bg-border/40" />
-        <span className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 bg-background px-3 text-xs text-muted-foreground/60 uppercase tracking-wider">
-          or sign up with email
-        </span>
-      </div>
-
-      {/* Form */}
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-        {/* Full name */}
-        <div className="space-y-2">
-          <Label htmlFor="full_name" className="text-sm font-medium text-foreground">
-            Full name
-          </Label>
-          <div className="relative">
-            <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
-            <Input
-              id="full_name"
-              type="text"
-              autoComplete="name"
-              placeholder="Jane Smith"
-              className={cn(
-                "pl-10 h-12 rounded-xl bg-background border-border/60 text-sm focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary/40",
-                errors.full_name && "border-destructive"
-              )}
-              {...register("full_name")}
-            />
-          </div>
-          {errors.full_name && (
-            <p className="text-xs text-destructive">{errors.full_name.message}</p>
-          )}
-        </div>
-
-        {/* Email */}
-        <div className="space-y-2">
-          <Label htmlFor="email" className="text-sm font-medium text-foreground">
-            Email
-          </Label>
-          <div className="relative">
-            <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
-            <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              placeholder="you@example.com"
-              className={cn(
-                "pl-10 h-12 rounded-xl bg-background border-border/60 text-sm focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary/40",
-                errors.email && "border-destructive"
-              )}
-              {...register("email")}
-            />
-          </div>
-          {errors.email && (
-            <p className="text-xs text-destructive">{errors.email.message}</p>
-          )}
-        </div>
-
-        {/* Password */}
-        <div className="space-y-2">
-          <Label htmlFor="password" className="text-sm font-medium text-foreground">
-            Password
-          </Label>
-          <div className="relative">
-            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
-            <Input
-              id="password"
-              type={showPassword ? "text" : "password"}
-              autoComplete="new-password"
-              placeholder="Min. 8 characters"
-              className={cn(
-                "pl-10 pr-11 h-12 rounded-xl bg-background border-border/60 text-sm focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary/40",
-                errors.password && "border-destructive"
-              )}
-              {...register("password", {
-                onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
-                  setPasswordValue(e.target.value),
-              })}
-            />
-            <button
-              type="button"
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground transition-colors"
-              onClick={() => setShowPassword(!showPassword)}
-              tabIndex={-1}
-            >
-              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
-          </div>
-
-          {/* Password strength + interactive checklist */}
-          {passwordValue && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <div className="flex gap-1 flex-1">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <div
-                      key={i}
-                      className={cn(
-                        "h-1 flex-1 rounded-full transition-all duration-300",
-                        i <= passwordStrength.score
-                          ? passwordStrength.color
-                          : "bg-muted"
-                      )}
-                    />
-                  ))}
-                </div>
-                <span className={cn(
-                  "text-[11px] font-medium shrink-0",
-                  passwordStrength.score <= 2
-                    ? "text-red-400"
-                    : passwordStrength.score <= 3
-                    ? "text-amber-400"
-                    : "text-emerald-400"
-                )}>
-                  {passwordStrength.label}
-                </span>
-              </div>
-              <PasswordChecklist password={passwordValue} />
-            </div>
-          )}
-
-          {errors.password && (
-            <p className="text-xs text-destructive">{errors.password.message}</p>
-          )}
-        </div>
-
-        {/* Confirm password */}
-        <div className="space-y-2">
-          <Label htmlFor="confirm_password" className="text-sm font-medium text-foreground">
-            Confirm password
-          </Label>
-          <div className="relative">
-            <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
-            <Input
-              id="confirm_password"
-              type={showConfirm ? "text" : "password"}
-              autoComplete="new-password"
-              placeholder="Repeat your password"
-              className={cn(
-                "pl-10 pr-11 h-12 rounded-xl bg-background border-border/60 text-sm focus-visible:ring-2 focus-visible:ring-primary/20 focus-visible:border-primary/40",
-                errors.confirm_password && "border-destructive"
-              )}
-              {...register("confirm_password")}
-            />
-            <button
-              type="button"
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground transition-colors"
-              onClick={() => setShowConfirm(!showConfirm)}
-              tabIndex={-1}
-            >
-              {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
-          </div>
-          {errors.confirm_password && (
-            <p className="text-xs text-destructive">
-              {errors.confirm_password.message}
+      <div className="w-full max-w-[460px] space-y-8 bg-card/10 p-2 rounded-[2.5rem]">
+        <div className="bg-background/40 backdrop-blur-2xl border border-border/10 rounded-[2.2rem] p-8 sm:p-10 shadow-2xl space-y-8">
+          {/* Header */}
+          <div className="space-y-3">
+            <h1 className="text-3xl sm:text-4xl font-medium text-foreground tracking-tight font-heading">
+              Get Started
+            </h1>
+            <p className="text-base text-muted-foreground font-medium">
+              Create your free account in seconds
             </p>
-          )}
+          </div>
+
+          <div className="w-full">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full h-12 gap-3 text-sm font-medium border-border/80 hover:bg-accent/60 rounded-xl transition-all hover:shadow-sm"
+              onClick={signUpWithGoogle}
+              disabled={isGoogleLoading || isSubmitting}
+            >
+              {isGoogleLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <GoogleIcon />
+              )}
+              Continue with Google
+            </Button>
+          </div>
+
+          {/* Divider */}
+          <div className="flex items-center gap-4">
+            <Separator className="flex-1 bg-border/20" />
+            <span className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-[0.2em]">
+              or use email
+            </span>
+            <Separator className="flex-1 bg-border/20" />
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
+            {/* Full Name */}
+            <div className="space-y-2.5">
+              <Label htmlFor="full_name" className="text-sm font-bold text-foreground ml-1">
+                Full Name
+              </Label>
+              <div className="relative group">
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
+                <Input
+                  id="full_name"
+                  type="text"
+                  autoComplete="name"
+                  placeholder="Jane Doe"
+                  className={cn(
+                    "pl-11 h-13 rounded-2xl bg-muted/20 border-border/30 text-sm font-medium focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:border-primary/30 transition-all",
+                    errors.full_name && "border-destructive/50 focus-visible:ring-destructive/10"
+                  )}
+                  {...register("full_name")}
+                />
+              </div>
+              {errors.full_name && (
+                <p className="text-xs font-semibold text-destructive/80 ml-1">{errors.full_name.message}</p>
+              )}
+            </div>
+
+            {/* Email */}
+            <div className="space-y-2.5">
+              <Label htmlFor="email" className="text-sm font-bold text-foreground ml-1">
+                Email Address
+              </Label>
+              <div className="relative group">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="you@example.com"
+                  className={cn(
+                    "pl-11 h-13 rounded-2xl bg-muted/20 border-border/30 text-sm font-medium focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:border-primary/30 transition-all",
+                    errors.email && "border-destructive/50 focus-visible:ring-destructive/10"
+                  )}
+                  {...register("email")}
+                />
+              </div>
+              {errors.email && (
+                <p className="text-xs font-semibold text-destructive/80 ml-1">{errors.email.message}</p>
+              )}
+            </div>
+
+            {/* Password */}
+            <div className="space-y-2.5">
+              <Label htmlFor="password" className="text-sm font-bold text-foreground ml-1">
+                Create Password
+              </Label>
+              <div className="relative group">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  placeholder="At least 8 characters"
+                  className={cn(
+                    "pl-11 pr-12 h-13 rounded-2xl bg-muted/20 border-border/30 text-sm font-medium focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:border-primary/30 transition-all",
+                    errors.password && "border-destructive/50 focus-visible:ring-destructive/10"
+                  )}
+                  {...register("password", {
+                    onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
+                      setPasswordValue(e.target.value),
+                  })}
+                />
+                <button
+                  type="button"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground/40 hover:text-foreground transition-colors"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+
+              {/* Password strength */}
+              {passwordValue && (
+                <div className="px-1 space-y-3 pt-1">
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1.5 flex-1">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <div
+                          key={i}
+                          className={cn(
+                            "h-1 flex-1 rounded-full transition-all duration-500",
+                            i <= passwordStrength.score
+                              ? passwordStrength.color
+                              : "bg-muted/30"
+                          )}
+                        />
+                      ))}
+                    </div>
+                    <span className={cn(
+                      "text-[10px] font-black uppercase tracking-wider",
+                      passwordStrength.score <= 2
+                        ? "text-red-400"
+                        : passwordStrength.score <= 3
+                        ? "text-amber-400"
+                        : "text-emerald-400"
+                    )}>
+                      {passwordStrength.label}
+                    </span>
+                  </div>
+                  <PasswordChecklist password={passwordValue} />
+                </div>
+              )}
+
+              {errors.password && (
+                <p className="text-xs font-semibold text-destructive/80 ml-1">{errors.password.message}</p>
+              )}
+            </div>
+
+            {/* Confirm Password */}
+            <div className="space-y-2.5">
+              <Label htmlFor="confirm_password" className="text-sm font-bold text-foreground ml-1">
+                Confirm Password
+              </Label>
+              <div className="relative group">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
+                <Input
+                  id="confirm_password"
+                  type={showConfirm ? "text" : "password"}
+                  autoComplete="new-password"
+                  placeholder="Repeat your password"
+                  className={cn(
+                    "pl-11 pr-12 h-13 rounded-2xl bg-muted/20 border-border/30 text-sm font-medium focus-visible:ring-4 focus-visible:ring-primary/10 focus-visible:border-primary/30 transition-all",
+                    errors.confirm_password && "border-destructive/50 focus-visible:ring-destructive/10"
+                  )}
+                  {...register("confirm_password")}
+                />
+                <button
+                  type="button"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground/40 hover:text-foreground transition-colors"
+                  onClick={() => setShowConfirm(!showConfirm)}
+                >
+                  {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {errors.confirm_password && (
+                <p className="text-xs font-semibold text-destructive/80 ml-1">
+                  {errors.confirm_password.message}
+                </p>
+              )}
+            </div>
+
+            {/* Submit */}
+            <Button
+              type="submit"
+              className="w-full h-13 bg-foreground text-background hover:bg-foreground/90 font-bold rounded-2xl text-base shadow-xl transition-all active:scale-[0.98] group"
+              disabled={isSubmitting || isGoogleLoading}
+            >
+              {isSubmitting ? (
+                <Loader2 className="h-5 w-5 animate-spin mr-2" />
+              ) : (
+                <span className="flex items-center gap-2">
+                  Create Account <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+                </span>
+              )}
+            </Button>
+          </form>
+
+          {/* Footer link */}
+          <div className="text-center pt-2">
+            <p className="text-sm font-medium text-muted-foreground">
+              Already have an account?{" "}
+              <Link
+                href="/login"
+                className="font-bold text-primary hover:underline underline-offset-4"
+              >
+                Sign In
+              </Link>
+            </p>
+          </div>
         </div>
-
-        {/* Submit */}
-        <Button
-          type="submit"
-          className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold rounded-xl text-sm shadow-glow-sm hover:shadow-glow transition-all"
-          disabled={isSubmitting || isGoogleLoading}
-        >
-          {isSubmitting ? (
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-          ) : null}
-          Create free account
-          <ArrowRight className="h-4 w-4 ml-2" />
-        </Button>
-      </form>
-
-      {/* Divider */}
-      <div className="h-px bg-border/30" />
-
-      {/* Sign in link */}
-      <p className="text-center text-sm text-muted-foreground">
-        Already have an account?{" "}
-        <Link
-          href="/login"
-          className="font-semibold text-primary hover:underline transition-colors"
-        >
-          Sign in
-        </Link>
-      </p>
-    </div>
+      </div>
     </AnimatedSection>
   );
 }
@@ -484,20 +431,29 @@ function GoogleIcon() {
   );
 }
 
-function FacebookIcon() {
+
+function SignupSkeleton() {
   return (
-    <svg className="h-5 w-5" viewBox="0 0 24 24">
-      <path
-        d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"
-        fill="#1877F2"
-      />
-    </svg>
+    <div className="w-full max-w-[460px] space-y-8 animate-pulse p-10">
+      <div className="h-10 w-48 bg-muted/40 rounded-xl mb-4" />
+      <div className="h-4 w-64 bg-muted/20 rounded-lg mb-8" />
+      <div className="grid grid-cols-2 gap-4">
+        <div className="h-12 bg-muted/30 rounded-2xl" />
+        <div className="h-12 bg-muted/30 rounded-2xl" />
+      </div>
+      <div className="space-y-4 pt-4">
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} className="h-13 bg-muted/10 rounded-2xl border border-border/10" />
+        ))}
+        <div className="h-13 bg-foreground/10 rounded-2xl shadow-xl mt-4" />
+      </div>
+    </div>
   );
 }
 
 export default function SignupPage() {
   return (
-    <Suspense>
+    <Suspense fallback={<SignupSkeleton />}>
       <SignupContent />
     </Suspense>
   );
