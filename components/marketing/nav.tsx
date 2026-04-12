@@ -13,7 +13,7 @@ import {
 const NAV_LINKS = [
   { label: "Features", href: "/#features" },
   { label: "How it Works", href: "/how-it-works" },
-  { label: "Pricing", href: "/pricing" },
+  { label: "Log in", href: "/login" },
 ] as const;
 
 
@@ -263,8 +263,8 @@ export function Navbar() {
             >
               <div className="max-w-md mx-auto space-y-3">
                 <Link
-                  href="/#waitlist"
-                  onClick={() => handleNavClick("/#waitlist")}
+                  href="/signup"
+                  onClick={() => setMobileOpen(false)}
                   className="flex items-center justify-center gap-2 h-14 w-full rounded-2xl bg-foreground text-background text-base font-black shadow-xl shadow-foreground/10 active:scale-[0.97] transition-all"
                 >
                   Get Started for Free <ArrowRight className="h-5 w-5" />
@@ -278,11 +278,11 @@ export function Navbar() {
                     Member Log in
                   </Link>
                    <Link
-                    href="/pricing"
+                    href="/contact"
                     onClick={() => setMobileOpen(false)}
                     className="flex items-center justify-center h-12 w-full rounded-xl bg-muted/40 text-foreground text-sm font-bold border border-border/10 active:scale-[0.97] transition-all"
                   >
-                    View Pricing
+                    Help & Support
                   </Link>
                 </div>
               </div>

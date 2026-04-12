@@ -605,7 +605,7 @@ export default function LandingPage() {
         </div>
 
         <div className="relative max-w-7xl mx-auto px-6 lg:px-10">
-          <div className="max-w-5xl mx-auto text-center">
+          <div className="max-w-5xl mx-auto text-center space-y-10 sm:space-y-12">
             {/* Announcement Badge */}
             <AnimatedSection animation="fade-down" delay={100} className="flex justify-center">
               <Link
@@ -626,7 +626,7 @@ export default function LandingPage() {
 
             {/* Main Headline */}
             <AnimatedSection animation="fade-up" delay={200}>
-              <h1 className="text-[2rem] sm:text-5xl lg:text-7xl font-extrabold tracking-tight leading-tight mb-6">
+              <h1 className="text-[2rem] sm:text-5xl lg:text-7xl font-extrabold tracking-tight leading-[1.1] mb-8">
                 <span className="text-foreground">Post Everywhere.</span> <br />
                 <span className="bg-gradient-to-r from-primary via-violet-500 to-sky-500 bg-clip-text text-transparent">
                   Automate Everything.
@@ -642,7 +642,7 @@ export default function LandingPage() {
             </AnimatedSection>
 
             {/* Hero CTAs */}
-            <AnimatedSection animation="fade-up" delay={400} className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+            <AnimatedSection animation="fade-up" delay={400} className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
               <Link
                 href="/signup"
                 className="group relative inline-flex items-center justify-center gap-2 rounded-full bg-primary px-10 py-4 text-base font-bold text-white transition-all hover:bg-black active:scale-[0.97] shadow-xl hover:shadow-primary/25 w-full sm:w-auto overflow-hidden text-center"
