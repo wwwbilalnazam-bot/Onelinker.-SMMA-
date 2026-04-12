@@ -60,23 +60,23 @@ export function Navbar() {
     <header
       className={cn(
         "fixed top-0 inset-x-0 z-[100] transition-all duration-300 border-b",
-        scrolled 
-          ? "bg-white/80 dark:bg-black/80 backdrop-blur-xl border-border/50 py-3 shadow-lg shadow-black/[0.03]" 
-          : "bg-transparent border-transparent py-5"
+        scrolled
+          ? "bg-white/80 dark:bg-black/80 backdrop-blur-xl border-border/50 py-2 sm:py-3 shadow-lg shadow-black/[0.03]"
+          : "bg-transparent border-transparent py-3 sm:py-5"
       )}
     >
-      <nav className="max-w-7xl mx-auto flex items-center justify-between px-6 lg:px-10">
+      <nav className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-10 gap-2 sm:gap-4">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5 z-[110] transition-opacity hover:opacity-80">
+        <Link href="/" className="flex items-center gap-1.5 sm:gap-2.5 z-[110] transition-opacity hover:opacity-80 shrink-0">
           <Image
             src="/logo.png"
             alt="Onelinker"
-            width={40}
-            height={40}
-            className="rounded-lg"
+            width={32}
+            height={32}
+            className="rounded-md h-8 w-8 sm:h-10 sm:w-10"
             priority
           />
-          <span className="text-lg font-bold text-foreground tracking-tight">
+          <span className="hidden sm:inline text-base sm:text-lg font-bold text-foreground tracking-tight">
             Onelinker
           </span>
         </Link>
@@ -102,34 +102,36 @@ export function Navbar() {
           ))}
         </div>
 
-        {/* Desktop CTA */}
-        <div className="hidden md:flex items-center gap-4 relative z-[110]">
+        {/* CTA Buttons - Show on all devices but styled differently */}
+        <div className="flex items-center gap-2 sm:gap-3 relative z-[110] ml-auto sm:ml-0">
           <Link
             href="/login"
-            className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors px-2"
+            className="hidden sm:block text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors px-2"
           >
             Log in
           </Link>
           <Link
             href="/signup"
-            className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-foreground px-6 py-2.5 text-sm font-bold text-background transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xl hover:shadow-primary/25"
+            className="group relative inline-flex items-center justify-center gap-1 sm:gap-2 overflow-hidden rounded-full bg-foreground px-3 sm:px-6 py-2 sm:py-2.5 text-xs sm:text-sm font-bold text-background transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg sm:shadow-xl hover:shadow-primary/25 shrink-0"
           >
-            <span className="relative z-10 flex items-center gap-1.5">
-              Get Started <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            <span className="relative z-10 flex items-center gap-1 sm:gap-1.5">
+              <span className="hidden sm:inline">Get Started</span>
+              <span className="sm:hidden">Start</span>
+              <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4 transition-transform group-hover:translate-x-0.5 sm:group-hover:translate-x-1" />
             </span>
             <div className="absolute inset-0 bg-gradient-to-r from-primary to-violet-500 opacity-0 group-hover:opacity-100 transition-opacity" />
           </Link>
         </div>
 
-        {/* Mobile hamburger */}
+        {/* Mobile hamburger - Hidden on md and up since we show CTA buttons */}
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
-          className="relative z-[110] flex md:hidden h-10 w-10 items-center justify-center rounded-full bg-muted/40 backdrop-blur-md border border-border/40 text-foreground transition-all hover:bg-muted/60 active:scale-90"
+          className="relative z-[110] flex sm:hidden h-9 w-9 items-center justify-center rounded-full bg-muted/40 backdrop-blur-md border border-border/40 text-foreground transition-all hover:bg-muted/60 active:scale-90 shrink-0"
           aria-label={mobileOpen ? "Close menu" : "Open menu"}
           aria-expanded={mobileOpen}
           aria-controls="mobile-nav-menu"
         >
-          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          {mobileOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
         </button>
       </nav>
 
