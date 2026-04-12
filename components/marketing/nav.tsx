@@ -154,9 +154,9 @@ export function Navbar() {
           {/* Content Container */}
           <div className="relative flex flex-col h-screen w-full bg-background overflow-hidden">
             {/* Scrollable Content Area */}
-            <div className="flex-1 overflow-y-auto px-6 pt-20">
+            <div className="flex-1 overflow-y-auto px-5 pt-4">
               {/* Navigation Links */}
-              <nav className="space-y-1 mb-8">
+              <nav className="space-y-0">
                 {NAV_LINKS.map((l, i) => (
                   <Link
                     key={l.href}
@@ -164,11 +164,10 @@ export function Navbar() {
                     data-mobile-nav-link=""
                     onClick={() => setMobileOpen(false)}
                     className={cn(
-                      "block min-h-[48px] px-4 py-3 text-2xl sm:text-3xl font-medium font-heading text-foreground",
+                      "block min-h-[44px] px-4 py-3 text-lg font-semibold text-foreground",
                       "rounded-lg transition-all duration-200 outline-none",
                       "hover:text-primary hover:bg-muted/40",
-                      "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                      "border-b border-border/10 last:border-b-0"
+                      "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                     )}
                     style={{ transitionDelay: `${i * 50}ms` }}
                   >
@@ -179,30 +178,30 @@ export function Navbar() {
             </div>
 
             {/* CTA Section - Sticky Footer */}
-            <div className="shrink-0 border-t border-border/10 bg-background px-6 py-4 pb-safe space-y-3">
+            <div className="shrink-0 border-t border-border/10 bg-background px-5 py-3 pb-safe space-y-2">
               <Link
                 href="/signup"
                 className={cn(
-                  "flex items-center justify-center gap-2 min-h-[48px] rounded-full bg-foreground w-full px-6 py-4",
-                  "text-base font-bold text-background shadow-xl",
+                  "flex items-center justify-center gap-2 min-h-[44px] rounded-full bg-foreground w-full px-5 py-3",
+                  "text-sm font-bold text-background shadow-lg",
                   "transition-all duration-200 outline-none",
                   "hover:shadow-primary/25 hover:scale-[1.02] active:scale-[0.98]",
                   "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 )}
               >
-                Get Started <ArrowRight className="h-5 w-5" />
+                Get Started <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 href="/login"
                 className={cn(
-                  "flex items-center justify-center min-h-[48px] w-full px-4 py-3",
-                  "text-sm font-semibold text-muted-foreground",
+                  "flex items-center justify-center min-h-[44px] w-full px-4 py-2.5",
+                  "text-sm font-medium text-muted-foreground",
                   "transition-colors duration-200 outline-none rounded-lg",
                   "hover:text-foreground hover:bg-muted/40",
                   "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 )}
               >
-                Already have an account? Log in
+                Log in
               </Link>
             </div>
           </div>
