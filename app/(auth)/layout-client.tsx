@@ -229,23 +229,23 @@ export function AuthLayoutClient({
       </div>
 
       {/* ── Right panel (form area) ── */}
-      <div className="flex-1 flex flex-col min-h-screen relative overflow-hidden">
+      <div className="flex-1 flex flex-col min-h-screen relative lg:overflow-hidden overflow-y-auto">
         {/* Subtle background glow for dark mode on right panel */}
         <div className="absolute top-0 right-0 w-[30%] h-[30%] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
         
         {/* Mobile header */}
-        <header className="lg:hidden flex items-center justify-between px-6 py-5 border-b border-border/10 bg-background/80 backdrop-blur-xl z-20">
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <Image src="/logo.png" alt="Onelinker" width={32} height={32} className="rounded-lg shadow-lg" />
-            <span className="text-xl font-bold text-foreground tracking-tight font-heading">Onelinker</span>
+        <header className="lg:hidden sticky top-0 flex items-center justify-between px-4 py-4 border-b border-border/20 bg-background/95 backdrop-blur-md z-40 gap-3">
+          <Link href="/" className="flex items-center gap-2 group shrink-0">
+            <Image src="/logo.png" alt="Onelinker" width={28} height={28} className="rounded-md shadow-lg" />
+            <span className="text-lg font-bold text-foreground tracking-tight font-heading hidden sm:inline">Onelinker</span>
           </Link>
 
           <Link
             href="/"
-            className="flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground transition-all active:scale-95"
+            className="ml-auto flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-muted-foreground hover:text-foreground active:scale-95 transition-all rounded-lg hover:bg-secondary/50"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            <span className="hidden sm:inline">Back</span>
           </Link>
         </header>
 
@@ -261,24 +261,26 @@ export function AuthLayoutClient({
         </div>
 
         {/* Form content — centered */}
-        <main className="flex-1 flex items-center justify-center px-6 py-10 lg:py-0 relative z-10">
+        <main className="flex-1 flex items-center justify-center px-4 py-6 sm:px-6 sm:py-10 lg:py-0 relative z-10 w-full">
           {children}
         </main>
 
         {/* Footer */}
-        <footer className="px-6 pb-8 pt-4 text-center text-[11px] font-medium text-muted-foreground/60 relative z-10">
-          <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mb-2">
-            <Link href="/terms" className="hover:text-foreground transition-colors">
-              Terms of Service
+        <footer className="px-4 py-6 sm:px-6 sm:py-8 text-center text-[10px] sm:text-[11px] font-medium text-muted-foreground/60 relative z-10">
+          <div className="flex flex-wrap justify-center gap-2 sm:gap-x-4 sm:gap-y-2 mb-2 text-xs sm:text-sm">
+            <Link href="/terms" className="hover:text-foreground transition-colors underline hover:no-underline">
+              Terms
             </Link>
-            <Link href="/privacy" className="hover:text-foreground transition-colors">
-              Privacy Policy
+            <span className="hidden sm:inline text-border/40">•</span>
+            <Link href="/privacy" className="hover:text-foreground transition-colors underline hover:no-underline">
+              Privacy
             </Link>
-            <Link href="/contact" className="hover:text-foreground transition-colors">
+            <span className="hidden sm:inline text-border/40">•</span>
+            <Link href="/contact" className="hover:text-foreground transition-colors underline hover:no-underline">
               Support
             </Link>
           </div>
-          <p className="text-[10px] tracking-wider uppercase opacity-40">&copy; 2026 Onelinker AI &middot; Made for Creators</p>
+          <p className="text-[9px] sm:text-[10px] tracking-wider uppercase opacity-40">&copy; 2026 Onelinker AI</p>
         </footer>
       </div>
       </div>
