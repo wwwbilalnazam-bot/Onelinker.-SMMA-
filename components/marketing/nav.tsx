@@ -91,17 +91,18 @@ export function Navbar() {
                 key={l.href}
                 href={l.href}
                 className={cn(
-                  "px-4 py-2 text-sm font-medium rounded-full transition-all relative group",
-                  pathname === l.href 
-                    ? "text-primary bg-white shadow-sm" 
+                  "px-4 py-2 text-sm font-medium rounded-full transition-all relative group outline-none",
+                  "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-muted/30",
+                  pathname === l.href
+                    ? "text-primary bg-white shadow-sm"
                     : "text-muted-foreground hover:text-foreground hover:bg-white/50"
                 )}
               >
                 {l.label}
                 {pathname === l.href && (
-                  <motion.div 
+                  <motion.div
                     layoutId="nav-active"
-                    className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary" 
+                    className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary"
                   />
                 )}
               </Link>
@@ -114,13 +115,19 @@ export function Navbar() {
           <div className="hidden sm:flex items-center gap-3 relative z-[110]">
             <Link
               href="/login"
-              className="text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors px-3 py-2"
+              className={cn(
+                "text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors px-3 py-2 rounded-lg outline-none",
+                "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              )}
             >
               Log in
             </Link>
             <Link
               href="/signup"
-              className="group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-full bg-foreground px-6 py-2.5 text-sm font-bold text-background transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-primary/25"
+              className={cn(
+                "group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-full bg-foreground px-6 py-2.5 text-sm font-bold text-background transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-primary/25 outline-none",
+                "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              )}
             >
               <span className="relative z-10 flex items-center gap-1.5">
                 Get Started <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -132,8 +139,12 @@ export function Navbar() {
           {/* Mobile Hamburger Button */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="relative z-[110] flex md:hidden h-9 w-9 items-center justify-center rounded-full bg-muted/40 backdrop-blur-md border border-border/40 text-foreground transition-all hover:bg-muted/60 active:scale-90 shrink-0"
+            className={cn(
+              "relative z-[110] flex md:hidden h-9 w-9 items-center justify-center rounded-full bg-muted/40 backdrop-blur-md border border-border/40 text-foreground transition-all hover:bg-muted/60 active:scale-90 shrink-0 outline-none",
+              "focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            )}
             aria-label={mobileOpen ? "Close menu" : "Open menu"}
+            aria-expanded={mobileOpen}
           >
             <AnimatePresence mode="wait" initial={false}>
               {mobileOpen ? (
