@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { ForceLightTheme } from "@/components/providers/ForceLightTheme";
 import {
   Calendar, BarChart3, Users, Shield, Star, ArrowLeft,
   Sparkles, Globe, Zap,
@@ -139,7 +140,9 @@ export function AuthLayoutClient({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-background flex text-foreground selection:bg-primary/30">
+    <>
+      <ForceLightTheme />
+      <div className="min-h-screen bg-background flex text-foreground selection:bg-primary/30">
       {/* ── Left panel (branding) — hidden on mobile ── */}
       <div className="hidden lg:flex lg:w-[480px] xl:w-[540px] shrink-0 relative overflow-hidden border-r border-border/10">
         {/* Background layers — Matching landing page aesthetics */}
@@ -278,6 +281,7 @@ export function AuthLayoutClient({
           <p className="text-[10px] tracking-wider uppercase opacity-40">&copy; 2026 Onelinker AI &middot; Made for Creators</p>
         </footer>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

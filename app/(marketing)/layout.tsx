@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { Navbar, Footer } from "@/components/marketing/nav";
+import { MarketingLayoutClient } from "./layout-client";
 
 export const metadata: Metadata = {
   title: "Onelinker — AI-Powered Social Media Management for 10+ Platforms",
@@ -12,11 +12,5 @@ export default function MarketingLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar />
-      <main className="flex-1 pt-16">{children}</main>
-      <Footer />
-    </div>
-  );
+  return <MarketingLayoutClient>{children}</MarketingLayoutClient>;
 }
