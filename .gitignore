@@ -63,3 +63,6 @@ Desktop.ini
 
 .vercel
 .env*.local
+
+.vercel
+.env*.local
