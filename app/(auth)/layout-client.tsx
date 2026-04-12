@@ -82,7 +82,7 @@ export function AuthLayoutClient({
         </div>
 
         {/* ── Right panel (form area) ── */}
-        <div className="flex-1 flex flex-col relative lg:overflow-hidden overflow-y-auto">
+        <div className="flex-1 flex flex-col relative overflow-y-auto lg:overflow-auto">
           {/* Mobile header — Minimal and clean */}
           <header className="lg:hidden sticky top-0 flex items-center justify-between px-4 py-5 border-b border-slate-200 bg-white/80 backdrop-blur-sm z-40">
             <Link href="/" className="flex items-center gap-2 group shrink-0">
@@ -110,9 +110,9 @@ export function AuthLayoutClient({
             </Link>
           </div>
 
-          {/* Form content — centered with max-width constraint */}
-          <main className="flex-1 flex items-center justify-center px-4 py-8 sm:px-6 sm:py-12 lg:py-0 relative z-10 w-full">
-            <div className="w-full max-w-md">
+          {/* Form content — scrollable on mobile, centered on desktop */}
+          <main className="flex-1 flex flex-col items-center justify-center px-4 py-8 sm:px-6 sm:py-12 lg:py-0 relative z-10 w-full min-h-0">
+            <div className="w-full max-w-md flex-shrink-0">
               {children}
             </div>
           </main>
