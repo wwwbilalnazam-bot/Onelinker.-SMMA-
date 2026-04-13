@@ -269,7 +269,7 @@ export async function createInstagramPost(params: {
         media_type: isVideo ? "VIDEO" : "IMAGE",
         ...(isVideo ? { video_url: url } : { image_url: url }),
         is_carousel_item: true,
-        upload_phase: isVideo ? "UPLOAD" : "FINISH",
+        upload_phase: "FINISH",
       },
       accessToken
     );
