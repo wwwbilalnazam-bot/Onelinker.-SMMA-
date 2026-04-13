@@ -86,28 +86,35 @@ export async function createFacebookPost(params: {
       const uploadRes = await fetch(startRes.upload_url, {
         method: "POST", // Meta Reels upload often prefers POST for binary
         body: videoBlob,
-        headers: { 
+        headers: {
           "Authorization": `OAuth ${pageAccessToken}`,
           "offset": "0",
           "file_size": String(videoBlob.size),
           "Content-Type": "application/octet-stream"
         }
       });
-      
+
       if (!uploadRes.ok) {
         const errText = await uploadRes.text();
         console.error(`[facebook-reel] Upload failed with status ${uploadRes.status}:`, errText);
         throw new Error(`Reel binary upload failed: ${uploadRes.status} ${errText}`);
       }
-      
+
+      // Parse upload response to get video_id
+      const uploadBody = await uploadRes.json() as { video_id?: string };
+      const videoId = uploadBody.video_id;
+      if (!videoId) {
+        throw new Error("Reel upload did not return video_id");
+      }
+
       // Step 3: Finish
-      console.log(`[facebook-reel] Finalizing reel`);
+      console.log(`[facebook-reel] Finalizing reel with video_id: ${videoId}`);
       const finishRes = await graphPost<{ id: string }>(
         `/${pageId}/video_reels`,
         {
           upload_phase: "finish",
           upload_session_id: startRes.upload_session_id,
-          video_state: "PUBLISHED",
+          video_id: videoId,
           description: message,
         },
         pageAccessToken
@@ -173,32 +180,40 @@ export async function createFacebookPost(params: {
       const uploadRes = await fetch(startRes.upload_url, {
         method: "POST",
         body: videoBlob,
-        headers: { 
+        headers: {
           "Authorization": `OAuth ${pageAccessToken}`,
           "offset": "0",
           "file_size": String(videoBlob.size),
           "Content-Type": "application/octet-stream"
         }
       });
-      
+
       if (!uploadRes.ok) {
         const errText = await uploadRes.text();
         throw new Error(`Video binary upload failed: ${uploadRes.status} ${errText}`);
       }
-      
+
+      // Parse upload response to get video_id
+      const uploadBody = await uploadRes.json() as { video_id?: string };
+      const videoId = uploadBody.video_id;
+      if (!videoId) {
+        throw new Error("Video upload did not return video_id");
+      }
+
       // Step 3: Finish
-      console.log(`[facebook-video] Finalizing feed video`);
+      console.log(`[facebook-video] Finalizing feed video with video_id: ${videoId}`);
       const body: Record<string, unknown> = {
         upload_phase: "finish",
         upload_session_id: startRes.upload_session_id,
+        video_id: videoId,
         description: message,
       };
-      
+
       if (params.scheduledTime) {
         body.published = false;
         body.scheduled_publish_time = params.scheduledTime;
       }
-      
+
       const finishRes = await graphPost<{ id: string }>(
         `/${pageId}/videos`,
         body,
