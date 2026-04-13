@@ -68,15 +68,57 @@ export async function createFacebookPost(params: {
     if (mediaUrls.length === 0) {
       throw new Error("Facebook reels require a video");
     }
-    const res = await graphPost<{ id: string }>(
-      `/${pageId}/video_reels`,
-      {
-        video_url: mediaUrls[0]!,
-        description: message,
-      },
-      pageAccessToken
-    );
-    return { id: res.id, platform: "facebook" };
+    
+    try {
+      const videoUrl = mediaUrls[0]!;
+      console.log(`[facebook-reel] Starting resumable upload for reel`);
+      
+      // Step 1: Start
+      const startRes = await graphPost<{ upload_session_id: string; upload_url: string }>(
+        `/${pageId}/video_reels`,
+        { upload_phase: "start" },
+        pageAccessToken
+      );
+      
+      // Step 2: Upload
+      console.log(`[facebook-reel] Uploading video binary`);
+      const videoBlob = await fetch(videoUrl).then(r => r.blob());
+      const uploadRes = await fetch(startRes.upload_url, {
+        method: "POST", // Meta Reels upload often prefers POST for binary
+        body: videoBlob,
+        headers: { 
+          "Authorization": `OAuth ${pageAccessToken}`,
+          "offset": "0",
+          "file_size": String(videoBlob.size),
+          "Content-Type": "application/octet-stream"
+        }
+      });
+      
+      if (!uploadRes.ok) {
+        const errText = await uploadRes.text();
+        console.error(`[facebook-reel] Upload failed with status ${uploadRes.status}:`, errText);
+        throw new Error(`Reel binary upload failed: ${uploadRes.status} ${errText}`);
+      }
+      
+      // Step 3: Finish
+      console.log(`[facebook-reel] Finalizing reel`);
+      const finishRes = await graphPost<{ id: string }>(
+        `/${pageId}/video_reels`,
+        {
+          upload_phase: "finish",
+          upload_session_id: startRes.upload_session_id,
+          video_state: "PUBLISHED",
+          description: message,
+        },
+        pageAccessToken
+      );
+      
+      return { id: finishRes.id, platform: "facebook" };
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : typeof err === 'string' ? err : String(err ?? 'Unknown error');
+      console.error(`[facebook-reel] Publish failed:`, err);
+      throw new Error(`Failed to publish Facebook Reel: ${errorMsg}`);
+    }
   }
 
   // ── Text-only post ───────────────────────────────────────
@@ -114,20 +156,61 @@ export async function createFacebookPost(params: {
 
   // ── Single video ─────────────────────────────────────────
   if (mediaUrls.length === 1 && isVideoUrl(mediaUrls[0]!)) {
-    const body: Record<string, unknown> = {
-      file_url: mediaUrls[0]!,
-      description: message,
-    };
-    if (params.scheduledTime) {
-      body.published = false;
-      body.scheduled_publish_time = params.scheduledTime;
+    try {
+      const videoUrl = mediaUrls[0]!;
+      console.log(`[facebook-video] Starting resumable upload for feed video`);
+      
+      // Step 1: Start
+      const startRes = await graphPost<{ upload_session_id: string; upload_url: string }>(
+        `/${pageId}/videos`,
+        { upload_phase: "start" },
+        pageAccessToken
+      );
+      
+      // Step 2: Upload
+      console.log(`[facebook-video] Uploading video binary`);
+      const videoBlob = await fetch(videoUrl).then(r => r.blob());
+      const uploadRes = await fetch(startRes.upload_url, {
+        method: "POST",
+        body: videoBlob,
+        headers: { 
+          "Authorization": `OAuth ${pageAccessToken}`,
+          "offset": "0",
+          "file_size": String(videoBlob.size),
+          "Content-Type": "application/octet-stream"
+        }
+      });
+      
+      if (!uploadRes.ok) {
+        const errText = await uploadRes.text();
+        throw new Error(`Video binary upload failed: ${uploadRes.status} ${errText}`);
+      }
+      
+      // Step 3: Finish
+      console.log(`[facebook-video] Finalizing feed video`);
+      const body: Record<string, unknown> = {
+        upload_phase: "finish",
+        upload_session_id: startRes.upload_session_id,
+        description: message,
+      };
+      
+      if (params.scheduledTime) {
+        body.published = false;
+        body.scheduled_publish_time = params.scheduledTime;
+      }
+      
+      const finishRes = await graphPost<{ id: string }>(
+        `/${pageId}/videos`,
+        body,
+        pageAccessToken
+      );
+      
+      return { id: finishRes.id, platform: "facebook" };
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : typeof err === 'string' ? err : String(err ?? 'Unknown error');
+      console.error(`[facebook-video] Publish failed:`, err);
+      throw new Error(`Failed to publish Facebook video: ${errorMsg}`);
     }
-    const res = await graphPost<{ id: string }>(
-      `/${pageId}/videos`,
-      body,
-      pageAccessToken
-    );
-    return { id: res.id, platform: "facebook" };
   }
 
   // ── Multiple photos (multi-photo post) ───────────────────
