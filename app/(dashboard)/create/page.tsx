@@ -942,6 +942,13 @@ export default function ComposePage() {
           scheduleMode: "draft",
           mediaUrls: mediaUrls.length > 0 ? mediaUrls : undefined,
           firstComment: activePanel === "comment" && firstComment.trim() ? firstComment.trim() : undefined,
+          youtubeTitle: youtubeSelected ? youtubeTitle.trim() || undefined : undefined,
+          youtubeConfig: youtubeSelected ? {
+            privacyStatus: ytPrivacy,
+            categoryId: ytCategory,
+            tags: ytTags.trim() ? ytTags.split(",").map(t => t.trim()).filter(Boolean) : undefined,
+            madeForKids: ytMadeForKids,
+          } : undefined,
         }),
       });
 
@@ -957,7 +964,7 @@ export default function ComposePage() {
     } catch {
       setAutoSaveStatus("idle");
     }
-  }, [workspace?.id, content, mediaFiles, selectedAccountIds, perChannelMode, channelContent, accountContent, activePanel, firstComment, draftId, isSubmitting]);
+  }, [workspace?.id, content, mediaFiles, selectedAccountIds, perChannelMode, channelContent, accountContent, activePanel, firstComment, draftId, isSubmitting, youtubeSelected, youtubeTitle, ytPrivacy, ytCategory, ytTags, ytMadeForKids]);
 
   useEffect(() => {
     if (!content.trim() || isSubmitting) return;
@@ -1609,6 +1616,7 @@ export default function ComposePage() {
     const missing: string[] = [];
     if (!hasContent && !isAllStoryMode) missing.push("caption");
     if (needsYoutubeTitle && !youtubeTitle.trim()) missing.push("YouTube title");
+    if (youtubeSelected && !videoFile) missing.push("video file for YouTube");
     if (isAllStoryMode && mediaFiles.filter(f => f.uploadStatus === "done").length === 0) missing.push("at least one image or video for stories");
     if (scheduleMode === "schedule" && !scheduledDate) missing.push("scheduled date");
 
@@ -1620,6 +1628,12 @@ export default function ComposePage() {
 
     const overLimit = selectedPlatforms.find(id => charInfo(id).isOver);
     if (overLimit) { toast.error(`Content too long for ${PLATFORMS.find(p => p.id === overLimit)?.label}`); return; }
+
+    // Check YouTube Shorts duration limit
+    if (youtubeSelected && platformFormats?.youtube === "short" && videoFile && videoFile.videoDuration > 60) {
+      toast.error(`YouTube Shorts must be 60 seconds or less (your video is ${Math.round(videoFile.videoDuration)}s)`);
+      return;
+    }
 
     const uploading = mediaFiles.filter(f => f.uploadStatus === "uploading" || f.uploadStatus === "pending");
     if (uploading.length > 0) { toast.error("Wait for media to finish uploading"); return; }

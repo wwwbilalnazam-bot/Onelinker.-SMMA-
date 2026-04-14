@@ -175,7 +175,19 @@ export async function POST(request: NextRequest) {
     let scheduleAtIso: string | undefined;
     if (scheduleMode === "schedule" && scheduledAt) {
       const time = scheduledTime || "09:00";
-      scheduleAtIso = new Date(`${scheduledAt}T${time}:00`).toISOString();
+      const localStr = `${scheduledAt}T${time}:00`;
+      try {
+        // Convert the local time in the user's timezone to UTC
+        const utcMs = new Date(
+          new Date(localStr).toLocaleString("en-US", { timeZone: timezone })
+        ).getTime();
+        const localMs = new Date(localStr).getTime();
+        const offsetMs = localMs - utcMs;
+        scheduleAtIso = new Date(localMs + offsetMs).toISOString();
+      } catch {
+        // Fallback to treating as UTC if timezone is invalid
+        scheduleAtIso = new Date(localStr).toISOString();
+      }
     }
 
     // Determine primary platform format
