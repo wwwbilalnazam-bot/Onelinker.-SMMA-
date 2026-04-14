@@ -30,13 +30,13 @@ export class YouTubeApiError extends Error {
 export function getYouTubeClientId(): string {
   const id = process.env.YOUTUBE_CLIENT_ID;
   if (!id) throw new YouTubeApiError("YOUTUBE_CLIENT_ID is not configured", 500);
-  return id;
+  return id.trim();
 }
 
 export function getYouTubeClientSecret(): string {
   const secret = process.env.YOUTUBE_CLIENT_SECRET;
   if (!secret) throw new YouTubeApiError("YOUTUBE_CLIENT_SECRET is not configured", 500);
-  return secret;
+  return secret.trim();
 }
 
 // ── Types ───────────────────────────────────────────────────

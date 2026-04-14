@@ -918,6 +918,70 @@ export default function ComposePage() {
   const autoSaveTimer                                   = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSavedContent                                = useRef<string>("");
 
+  // ─── Derived ─────────────────────────────────────────────────
+  // Unique platforms from selected accounts (preserving display order)
+  const selectedPlatforms = PLATFORMS
+    .map(p => p.id)
+    .filter(pid => selectedAccountIds.some(id => accounts.find(a => a.id === id)?.platform === pid)) as PlatformId[];
+
+  // Also include platforms not in PLATFORMS array (e.g. tiktok)
+  const allSelectedPlatforms = [
+    ...new Set(
+      selectedAccountIds
+        .map(id => accounts.find(a => a.id === id)?.platform)
+        .filter(Boolean) as string[]
+    ),
+  ];
+
+  // Channel selector: all accounts
+  const filteredAccounts = useMemo(() => {
+    return accounts;
+  }, [accounts]);
+
+  // Channel selector: unique platforms from all accounts
+  const accountPlatforms = useMemo(() => {
+    return Array.from(new Set(accounts.map(a => a.platform)));
+  }, [accounts]);
+
+  // Check if ALL selected platforms are in story format (stories don't need captions)
+  const isAllStoryMode = selectedPlatforms.length > 0 && selectedPlatforms.every(pid => {
+    const fmt = getFormat(pid, platformFormats[pid]);
+    return fmt.icon === "story";
+  });
+
+  function getChannelContent(id: PlatformId): string {
+    return perChannelMode ? (channelContent[id] ?? content) : content;
+  }
+
+  const currentEditContent = perChannelMode ? (accountContent[activeEditTab] ?? content) : content;
+  const activeMedia = mediaFiles.find(f => f.id === activeMediaId) ?? null;
+
+  function charInfo(id: PlatformId) {
+    const p = PLATFORMS.find(pl => pl.id === id)!;
+    const c = getChannelContent(id);
+    const remaining = p.limit - c.length;
+    return { remaining, isOver: remaining < 0, isNear: remaining >= 0 && remaining < 50, length: c.length, limit: p.limit };
+  }
+
+  function hashtagInfo(id: PlatformId) {
+    const p = PLATFORMS.find(pl => pl.id === id)!;
+    const c = getChannelContent(id);
+    const hashtags = c.match(/#[a-zA-Z0-9_]+/g) ?? [];
+    const count = hashtags.length;
+    const limit = p.hashtagLimit;
+    const isOver = count > limit;
+    return { count, limit, isOver };
+  }
+
+  // YouTube title needed when any YouTube account is selected
+  const youtubeSelected = allSelectedPlatforms.includes("youtube");
+  const youtubeFormat   = getFormat("youtube", platformFormats["youtube"]);
+  const needsYoutubeTitle = youtubeSelected;
+
+  // Show thumbnail picker when there's a video and at least one platform supports thumbnails
+  const videoFile = mediaFiles.find(f => f.type === "video" && f.uploadStatus === "done");
+  const showThumbnailPicker = !!videoFile && allSelectedPlatforms.length > 0;
+
   // ─── Auto-save to draft after 30s of inactivity ───────────────
   const autoSaveDraft = useCallback(async () => {
     if (!workspace?.id || !content.trim() || isSubmitting) return;
@@ -1099,7 +1163,7 @@ export default function ComposePage() {
             setYtCategory(data.options.youtubeConfig.categoryId || "22");
             setYtTags(data.options.youtubeConfig.tags?.join(", ") || "");
             setYtMadeForKids(data.options.youtubeConfig.madeForKids || false);
-            setYoutubeSelected(true);
+
           }
           if (data.options?.thumbnail) {
             setThumbnail(data.options.thumbnail);
@@ -1118,69 +1182,7 @@ export default function ComposePage() {
   }, [editId, workspace?.id, router, supabase]);
 
 
-  // ─── Derived ─────────────────────────────────────────────────
-  // Unique platforms from selected accounts (preserving display order)
-  const selectedPlatforms = PLATFORMS
-    .map(p => p.id)
-    .filter(pid => selectedAccountIds.some(id => accounts.find(a => a.id === id)?.platform === pid)) as PlatformId[];
 
-  // Also include platforms not in PLATFORMS array (e.g. tiktok)
-  const allSelectedPlatforms = [
-    ...new Set(
-      selectedAccountIds
-        .map(id => accounts.find(a => a.id === id)?.platform)
-        .filter(Boolean) as string[]
-    ),
-  ];
-
-  // Channel selector: all accounts
-  const filteredAccounts = useMemo(() => {
-    return accounts;
-  }, [accounts]);
-
-  // Channel selector: unique platforms from all accounts
-  const accountPlatforms = useMemo(() => {
-    return Array.from(new Set(accounts.map(a => a.platform)));
-  }, [accounts]);
-
-  // Check if ALL selected platforms are in story format (stories don't need captions)
-  const isAllStoryMode = selectedPlatforms.length > 0 && selectedPlatforms.every(pid => {
-    const fmt = getFormat(pid, platformFormats[pid]);
-    return fmt.icon === "story";
-  });
-
-  function getChannelContent(id: PlatformId): string {
-    return perChannelMode ? (channelContent[id] ?? content) : content;
-  }
-
-  const currentEditContent = perChannelMode ? (accountContent[activeEditTab] ?? content) : content;
-  const activeMedia = mediaFiles.find(f => f.id === activeMediaId) ?? null;
-
-  function charInfo(id: PlatformId) {
-    const p = PLATFORMS.find(pl => pl.id === id)!;
-    const c = getChannelContent(id);
-    const remaining = p.limit - c.length;
-    return { remaining, isOver: remaining < 0, isNear: remaining >= 0 && remaining < 50, length: c.length, limit: p.limit };
-  }
-
-  function hashtagInfo(id: PlatformId) {
-    const p = PLATFORMS.find(pl => pl.id === id)!;
-    const c = getChannelContent(id);
-    const hashtags = c.match(/#[a-zA-Z0-9_]+/g) ?? [];
-    const count = hashtags.length;
-    const limit = p.hashtagLimit;
-    const isOver = count > limit;
-    return { count, limit, isOver };
-  }
-
-  // YouTube title needed when any YouTube account is selected
-  const youtubeSelected = allSelectedPlatforms.includes("youtube");
-  const youtubeFormat   = getFormat("youtube", platformFormats["youtube"]);
-  const needsYoutubeTitle = youtubeSelected;
-
-  // Show thumbnail picker when there's a video and at least one platform supports thumbnails
-  const videoFile = mediaFiles.find(f => f.type === "video" && f.uploadStatus === "done");
-  const showThumbnailPicker = !!videoFile && allSelectedPlatforms.length > 0;
 
   async function handleGenerateTitle() {
     if (!workspace?.id) return;
